@@ -1,0 +1,1574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3DP Tycoon — Build Your Print Empire</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #09090b;
+  --surf: #111115;
+  --card: #16161e;
+  --card2: #1c1c26;
+  --border: #252535;
+  --border2: #2e2e42;
+  --accent: #ff6b2b;
+  --accent-dim: rgba(255,107,43,0.15);
+  --accent2: #00d4c8;
+  --accent2-dim: rgba(0,212,200,0.12);
+  --gold: #ffb830;
+  --gold-dim: rgba(255,184,48,0.12);
+  --green: #2dd98a;
+  --green-dim: rgba(45,217,138,0.12);
+  --red: #e05555;
+  --blue: #4a9eff;
+  --purple: #a78bfa;
+  --text: #dbd9d4;
+  --text2: #8b8998;
+  --text3: #4e4d5c;
+  --font-title: 'Orbitron', monospace;
+  --font-ui: 'Rajdhani', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-ui);font-size:15px;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(255,107,43,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,107,43,.025) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--surf)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--accent)}
+
+/* ===== HUD ===== */
+#hud{position:sticky;top:0;z-index:100;background:rgba(9,9,11,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:0;padding:0 16px;height:56px;flex-wrap:nowrap;overflow:hidden}
+.hud-brand{display:flex;align-items:center;gap:10px;min-width:max-content;margin-right:16px}
+.brand-hex{color:var(--accent);font-size:22px;line-height:1;animation:pulse-hex 3s ease-in-out infinite}
+@keyframes pulse-hex{0%,100%{opacity:.8}50%{opacity:1;text-shadow:0 0 12px var(--accent)}}
+.brand-name{font-family:var(--font-title);font-size:14px;color:var(--text);letter-spacing:.05em;white-space:nowrap}
+.phase-badge{font-family:var(--font-mono);font-size:10px;font-weight:700;padding:3px 8px;border-radius:3px;letter-spacing:.08em;white-space:nowrap}
+.phase-hobbyist{background:var(--border);color:var(--text2)}
+.phase-maker{background:rgba(74,158,255,.2);color:var(--blue)}
+.phase-business{background:rgba(45,217,138,.2);color:var(--green)}
+.phase-farm{background:rgba(255,184,48,.2);color:var(--gold)}
+.phase-empire{background:rgba(255,107,43,.2);color:var(--accent)}
+.hud-divider{width:1px;height:32px;background:var(--border);margin:0 4px;flex-shrink:0}
+.hud-stats{display:flex;align-items:center;gap:0;flex:1;overflow:hidden}
+.hud-stat{display:flex;flex-direction:column;padding:0 14px;border-right:1px solid var(--border);min-width:max-content}
+.hud-stat:last-child{border-right:none}
+.stat-lbl{font-size:9px;font-family:var(--font-mono);color:var(--text3);letter-spacing:.1em;text-transform:uppercase}
+.stat-val{font-family:var(--font-mono);font-size:14px;font-weight:700;line-height:1.2;transition:color .2s}
+.sv-gold{color:var(--gold)}
+.sv-green{color:var(--green)}
+.sv-cyan{color:var(--accent2)}
+.sv-text{color:var(--text)}
+.hud-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0}
+.btn-hud{background:transparent;border:1px solid var(--border2);color:var(--text2);font-family:var(--font-mono);font-size:11px;padding:5px 10px;border-radius:4px;cursor:pointer;transition:all .2s;letter-spacing:.05em;white-space:nowrap}
+.btn-hud:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+
+/* ===== TABS ===== */
+#tabs{background:var(--surf);border-bottom:1px solid var(--border);display:flex;gap:0;padding:0 16px;position:sticky;top:56px;z-index:99;overflow-x:auto}
+.tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text2);font-family:var(--font-ui);font-size:14px;font-weight:600;padding:12px 18px;cursor:pointer;transition:all .2s;letter-spacing:.04em;white-space:nowrap;display:flex;align-items:center;gap:7px}
+.tab:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-icon{font-size:15px}
+.tab-badge{background:var(--accent);color:#fff;font-family:var(--font-mono);font-size:10px;font-weight:700;padding:1px 5px;border-radius:10px;min-width:16px;text-align:center}
+
+/* ===== CONTENT ===== */
+#content{max-width:1400px;margin:0 auto;padding:20px 16px 80px;position:relative;z-index:1}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* ===== SECTION HEADERS ===== */
+.section-hdr{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.section-hdr h2{font-family:var(--font-title);font-size:13px;color:var(--text2);letter-spacing:.1em;font-weight:700}
+.section-hdr .hdr-line{flex:1;height:1px;background:var(--border)}
+
+/* ===== GRID LAYOUTS ===== */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.grid-3{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.grid-4{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+
+/* ===== CARDS ===== */
+.card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px 16px;transition:border-color .2s}
+.card:hover{border-color:var(--border2)}
+.card.highlight{border-color:var(--accent);background:linear-gradient(135deg,var(--card),rgba(255,107,43,.05))}
+.card.locked{opacity:.5;filter:grayscale(.5)}
+.card-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.card-icon{font-size:22px;line-height:1}
+.card-title{font-family:var(--font-ui);font-size:16px;font-weight:700;color:var(--text)}
+.card-sub{font-size:12px;color:var(--text2);margin-top:1px}
+.card-body{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:10px}
+
+/* ===== PRINTER CARDS ===== */
+.printer-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px;transition:border-color .2s;position:relative;overflow:hidden}
+.printer-card.active-print{border-color:var(--accent);animation:printer-glow 2s ease-in-out infinite}
+@keyframes printer-glow{0%,100%{box-shadow:inset 0 0 20px rgba(255,107,43,.03)}50%{box-shadow:inset 0 0 20px rgba(255,107,43,.08)}}
+.printer-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.printer-info{flex:1;min-width:160px}
+.printer-name{font-family:var(--font-ui);font-size:16px;font-weight:700;color:var(--text)}
+.printer-id{font-family:var(--font-mono);font-size:11px;color:var(--text3);margin-top:1px}
+.printer-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+/* ===== PROGRESS BAR ===== */
+.progress-wrap{margin:10px 0 8px;position:relative}
+.progress-track{background:var(--border);border-radius:3px;height:8px;overflow:hidden;position:relative}
+.progress-fill{height:100%;border-radius:3px;transition:width .3s linear;position:relative;overflow:hidden}
+.progress-fill::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.2) 50%,transparent 100%);animation:progress-shine 1.5s ease-in-out infinite}
+@keyframes progress-shine{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.progress-label{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11px;color:var(--text2);margin-bottom:4px}
+
+/* ===== BUTTONS ===== */
+.btn{border:none;border-radius:5px;font-family:var(--font-ui);font-size:14px;font-weight:600;padding:7px 14px;cursor:pointer;transition:all .15s;letter-spacing:.03em;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:#ff7d42}
+.btn-primary:disabled{background:var(--border);color:var(--text3);cursor:not-allowed;transform:none}
+.btn-cyan{background:var(--accent2);color:#0a0a0c}
+.btn-cyan:hover{background:#00ebe2}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--text2)}
+.btn-ghost:hover{border-color:var(--accent2);color:var(--accent2)}
+.btn-ghost:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn-green{background:var(--green);color:#0a0a0c}
+.btn-green:hover{background:#3df09a}
+.btn-green:disabled{background:var(--border);color:var(--text3);cursor:not-allowed;transform:none}
+.btn-sm{padding:4px 10px;font-size:13px;border-radius:4px}
+.btn-xs{padding:3px 8px;font-size:12px;border-radius:3px}
+.btn-stop{background:rgba(224,85,85,.15);border:1px solid rgba(224,85,85,.3);color:var(--red)}
+.btn-stop:hover{background:rgba(224,85,85,.25)}
+.btn-buy{background:var(--gold-dim);border:1px solid rgba(255,184,48,.3);color:var(--gold)}
+.btn-buy:hover{background:rgba(255,184,48,.2)}
+.btn-buy:disabled{background:var(--border);border-color:var(--border);color:var(--text3);cursor:not-allowed}
+
+/* ===== SELECT ===== */
+.sel{background:var(--card2);border:1px solid var(--border2);color:var(--text);font-family:var(--font-mono);font-size:12px;padding:5px 8px;border-radius:4px;cursor:pointer;outline:none}
+.sel:hover{border-color:var(--accent2)}
+.sel:focus{border-color:var(--accent)}
+.sel option{background:var(--card2)}
+
+/* ===== PRODUCT CARDS ===== */
+.product-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;transition:all .2s;position:relative}
+.product-card.selected{border-color:var(--accent);background:linear-gradient(135deg,var(--card),rgba(255,107,43,.06))}
+.product-card.locked{opacity:.45}
+.product-card:not(.locked):hover{border-color:var(--border2);transform:translateY(-1px)}
+.product-color-bar{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:8px 0 0 8px}
+.product-icon{font-size:28px;margin-bottom:6px}
+.product-name{font-family:var(--font-ui);font-size:15px;font-weight:700;color:var(--text);margin-bottom:3px}
+.product-value{font-family:var(--font-mono);font-size:18px;font-weight:700;color:var(--gold)}
+.product-stats{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:8px 0;font-size:12px;color:var(--text2)}
+.product-stat-row{display:flex;align-items:center;gap:5px}
+.product-desc{font-size:12px;color:var(--text3);font-style:italic;margin-bottom:8px}
+.inv-badge{display:inline-flex;align-items:center;gap:5px;background:var(--card2);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-family:var(--font-mono);font-size:12px;color:var(--text2)}
+.unlock-overlay{position:absolute;inset:0;background:rgba(9,9,11,.7);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.unlock-cost{font-family:var(--font-mono);font-size:13px;color:var(--gold);font-weight:700}
+
+/* ===== UPGRADE CARDS ===== */
+.upgrade-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+.upgrade-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:13px;transition:all .2s;position:relative}
+.upgrade-card.bought{border-color:var(--green);background:linear-gradient(135deg,var(--card),rgba(45,217,138,.04));opacity:.7}
+.upgrade-card.affordable{border-color:rgba(255,107,43,.4)}
+.upgrade-card.locked{opacity:.4}
+.upgrade-card:not(.bought):not(.locked):hover{border-color:var(--border2)}
+.upg-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+.upg-icon{font-size:20px;flex-shrink:0;margin-top:2px}
+.upg-title{font-size:15px;font-weight:700;color:var(--text)}
+.upg-sub{font-size:11px;color:var(--text3);margin-top:1px;text-transform:uppercase;letter-spacing:.05em;font-family:var(--font-mono)}
+.upg-desc{font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:8px}
+.upg-effect{font-family:var(--font-mono);font-size:11px;color:var(--green);background:var(--green-dim);border-radius:4px;padding:3px 8px;display:inline-block;margin-bottom:8px}
+.upg-bottom{display:flex;align-items:center;justify-content:space-between}
+.upg-cost{font-family:var(--font-mono);font-size:14px;font-weight:700;color:var(--gold)}
+.bought-tag{font-family:var(--font-mono);font-size:11px;color:var(--green);letter-spacing:.05em}
+.cat-header{display:flex;align-items:center;gap:10px;margin:20px 0 10px}
+.cat-label{font-family:var(--font-title);font-size:11px;color:var(--text3);letter-spacing:.15em;font-weight:700;white-space:nowrap}
+.cat-line{flex:1;height:1px;background:var(--border)}
+
+/* ===== AUTOMATION ===== */
+.auto-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;transition:all .2s}
+.auto-card.active{border-color:var(--accent2);background:linear-gradient(135deg,var(--card),var(--accent2-dim))}
+.auto-header{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.auto-icon{font-size:24px}
+.auto-title{font-size:16px;font-weight:700;color:var(--text)}
+.auto-tier{font-family:var(--font-mono);font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em}
+.auto-desc{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:12px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between}
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.toggle-slider{position:absolute;inset:0;background:var(--border2);border-radius:24px;cursor:pointer;transition:background .2s}
+.toggle-slider::before{content:'';position:absolute;left:3px;top:50%;transform:translateY(-50%);width:18px;height:18px;background:#fff;border-radius:50%;transition:transform .2s}
+.toggle input:checked + .toggle-slider{background:var(--accent2)}
+.toggle input:checked + .toggle-slider::before{transform:translate(20px,-50%)}
+.auto-settings{margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:none}
+.auto-card.active .auto-settings{display:block}
+.setting-row{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--text2);margin-bottom:8px}
+.setting-row:last-child{margin-bottom:0}
+.setting-val{font-family:var(--font-mono);font-size:13px;color:var(--accent2);font-weight:700}
+
+/* ===== STATS ===== */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:20px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px 16px}
+.stat-card-lbl{font-family:var(--font-mono);font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+.stat-card-val{font-family:var(--font-mono);font-size:22px;font-weight:700;color:var(--text)}
+.stat-card-sub{font-size:11px;color:var(--text2);margin-top:3px}
+.achievement-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.achievement{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;display:flex;gap:10px;align-items:flex-start;transition:all .2s}
+.achievement.unlocked{border-color:rgba(255,184,48,.4);background:linear-gradient(135deg,var(--card),var(--gold-dim))}
+.achievement.locked{opacity:.4}
+.ach-icon{font-size:24px;flex-shrink:0}
+.ach-name{font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px}
+.ach-desc{font-size:12px;color:var(--text2);line-height:1.4}
+
+/* ===== BUY PRINTER SECTION ===== */
+.buy-printer-card{background:var(--card);border:1px dashed var(--border2);border-radius:8px;padding:14px;transition:all .2s;cursor:pointer;position:relative}
+.buy-printer-card:hover{border-color:var(--accent);border-style:solid;background:var(--accent-dim)}
+.buy-printer-card.cannot-afford{opacity:.5;cursor:not-allowed}
+.buy-printer-card.cannot-afford:hover{border-color:var(--border2);border-style:dashed;background:var(--card)}
+.bpc-header{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.bpc-icon{font-size:24px}
+.bpc-name{font-size:15px;font-weight:700;color:var(--text)}
+.bpc-cost{font-family:var(--font-mono);font-size:14px;font-weight:700;color:var(--gold)}
+.bpc-desc{font-size:12px;color:var(--text2);margin-bottom:8px;line-height:1.4}
+.bpc-stats{display:flex;gap:12px;flex-wrap:wrap}
+.bpc-stat{font-family:var(--font-mono);font-size:11px;color:var(--text3)}
+.bpc-stat span{color:var(--accent2)}
+
+/* ===== FILAMENT SHOP ===== */
+.filament-section{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px}
+.fil-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.fil-title{font-size:16px;font-weight:700;color:var(--text)}
+.fil-stock{font-family:var(--font-mono);font-size:14px;color:var(--accent2)}
+.fil-buttons{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ===== NOTIFICATIONS ===== */
+#toasts{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--card2);border:1px solid var(--border2);border-radius:6px;padding:10px 14px;font-family:var(--font-mono);font-size:12px;color:var(--text);display:flex;align-items:center;gap:8px;animation:toast-in .3s ease;max-width:300px;pointer-events:all;box-shadow:0 4px 20px rgba(0,0,0,.5)}
+.toast.success{border-color:rgba(45,217,138,.4);color:var(--green)}
+.toast.warning{border-color:rgba(255,184,48,.4);color:var(--gold)}
+.toast.info{border-color:rgba(74,158,255,.4);color:var(--blue)}
+.toast.error{border-color:rgba(224,85,85,.4);color:var(--red)}
+@keyframes toast-in{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+@keyframes toast-out{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(20px)}}
+
+/* ===== FLOATING NUMBERS ===== */
+#floats{position:fixed;inset:0;pointer-events:none;z-index:998;overflow:hidden}
+.float-num{position:absolute;font-family:var(--font-mono);font-size:14px;font-weight:700;color:var(--gold);text-shadow:0 0 8px rgba(255,184,48,.5);animation:float-up 1.5s ease-out forwards;pointer-events:none;white-space:nowrap}
+@keyframes float-up{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-60px) scale(.8)}}
+
+/* ===== DEBUG CONSOLE ===== */
+#debug{position:fixed;bottom:20px;left:20px;z-index:999;background:rgba(9,9,11,.95);border:1px solid var(--accent);border-radius:8px;width:380px;max-height:280px;display:none;flex-direction:column;font-family:var(--font-mono)}
+#debug.open{display:flex}
+.debug-header{background:rgba(255,107,43,.15);padding:8px 12px;font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.1em;display:flex;justify-content:space-between;align-items:center;border-radius:8px 8px 0 0}
+#debug-log{flex:1;overflow-y:auto;padding:8px;font-size:11px;color:var(--text2);max-height:160px;min-height:60px}
+.debug-line{padding:2px 0;border-bottom:1px solid var(--border)}
+.debug-line.ok{color:var(--green)}
+.debug-line.err{color:var(--red)}
+.debug-line.info{color:var(--blue)}
+.debug-input-row{display:flex;gap:0;border-top:1px solid var(--border)}
+#debug-input{flex:1;background:transparent;border:none;padding:8px 10px;color:var(--accent);font-family:var(--font-mono);font-size:12px;outline:none}
+#debug-input::placeholder{color:var(--text3)}
+#debug-exec{background:var(--accent-dim);border:none;border-left:1px solid var(--border);padding:0 12px;color:var(--accent);font-family:var(--font-mono);font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.05em}
+#debug-exec:hover{background:var(--accent);color:#fff}
+
+/* ===== BULK ORDER MODAL ===== */
+#bulk-modal{position:fixed;inset:0;z-index:998;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center}
+#bulk-modal.open{display:flex}
+.modal-box{background:var(--card);border:1px solid var(--accent);border-radius:10px;padding:24px;max-width:380px;width:90%;text-align:center}
+.modal-title{font-family:var(--font-title);font-size:16px;color:var(--accent);letter-spacing:.08em;margin-bottom:8px}
+.modal-body{font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:16px}
+.modal-reward{font-family:var(--font-mono);font-size:24px;font-weight:700;color:var(--gold);margin-bottom:16px}
+.modal-btns{display:flex;gap:10px;justify-content:center}
+
+/* ===== INTRO SPLASH ===== */
+#splash{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .6s}
+#splash.hidden{opacity:0;pointer-events:none}
+.splash-title{font-family:var(--font-title);font-size:36px;font-weight:900;color:var(--text);letter-spacing:.05em;text-align:center}
+.splash-title span{color:var(--accent)}
+.splash-sub{font-family:var(--font-mono);font-size:14px;color:var(--text2);text-align:center}
+.splash-btn{background:var(--accent);color:#fff;border:none;font-family:var(--font-title);font-size:14px;font-weight:700;letter-spacing:.1em;padding:12px 32px;border-radius:6px;cursor:pointer;transition:all .2s}
+.splash-btn:hover{background:#ff7d42;box-shadow:0 0 24px rgba(255,107,43,.4)}
+.splash-input{background:var(--card);border:1px solid var(--border2);color:var(--text);font-family:var(--font-ui);font-size:15px;padding:10px 16px;border-radius:6px;outline:none;text-align:center;width:260px}
+.splash-input:focus{border-color:var(--accent)}
+.splash-load{background:transparent;border:1px solid var(--border2);color:var(--text2);font-family:var(--font-mono);font-size:12px;padding:8px 16px;border-radius:5px;cursor:pointer;transition:all .2s}
+.splash-load:hover{border-color:var(--accent2);color:var(--accent2)}
+.splash-logo{font-size:56px;animation:logo-spin 8s linear infinite}
+@keyframes logo-spin{0%,100%{transform:rotate(0deg)}50%{transform:rotate(360deg)}}
+
+/* ===== PRESTIGE ===== */
+.prestige-banner{background:linear-gradient(90deg,rgba(167,139,250,.1),rgba(255,107,43,.1));border:1px solid rgba(167,139,250,.3);border-radius:8px;padding:16px;margin-bottom:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.prestige-info{flex:1}
+.prestige-title{font-family:var(--font-title);font-size:14px;color:var(--purple);letter-spacing:.05em;margin-bottom:4px}
+.prestige-desc{font-size:13px;color:var(--text2);line-height:1.5}
+.prestige-mult{font-family:var(--font-mono);font-size:22px;font-weight:700;color:var(--purple)}
+
+/* ===== MISC ===== */
+.section-gap{margin-top:24px}
+.lbl{font-family:var(--font-mono);font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+.val-big{font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--text)}
+.tip{font-size:11px;color:var(--text3);font-style:italic}
+.empty-state{padding:40px;text-align:center;color:var(--text3);font-family:var(--font-mono);font-size:13px}
+.new-badge{background:var(--accent);color:#fff;font-family:var(--font-mono);font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;letter-spacing:.05em;margin-left:4px;vertical-align:middle}
+.order-ticker{background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:6px 12px;font-family:var(--font-mono);font-size:12px;color:var(--accent2);margin-bottom:12px;display:flex;align-items:center;gap:8px;overflow:hidden}
+.ticker-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 1s ease-in-out infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+</style>
+</head>
+<body>
+
+<!-- Splash Screen -->
+<div id="splash">
+  <div class="splash-logo">🖨️</div>
+  <div class="splash-title"><span>3DP</span> TYCOON</div>
+  <div class="splash-sub">Build your 3D printing empire from a single bedroom printer</div>
+  <input class="splash-input" id="shop-name-input" placeholder="Name your print shop..." maxlength="28">
+  <button class="splash-btn" onclick="startGame()">START PRINTING</button>
+  <button class="splash-load" onclick="loadGameFromSplash()">📂 Load Saved Game</button>
+  <div class="tip">Press ` (backtick) to open debug console</div>
+</div>
+
+<!-- HUD -->
+<header id="hud">
+  <div class="hud-brand">
+    <div class="brand-hex">⬡</div>
+    <div class="brand-name" id="hud-brand">3DP TYCOON</div>
+    <div class="phase-badge phase-hobbyist" id="phase-badge">HOBBYIST</div>
+  </div>
+  <div class="hud-divider"></div>
+  <div class="hud-stats">
+    <div class="hud-stat">
+      <span class="stat-lbl">Balance</span>
+      <span class="stat-val sv-gold" id="hud-money">$50.00</span>
+    </div>
+    <div class="hud-stat">
+      <span class="stat-lbl">Filament</span>
+      <span class="stat-val sv-cyan" id="hud-filament">500g</span>
+    </div>
+    <div class="hud-stat">
+      <span class="stat-lbl">$/sec</span>
+      <span class="stat-val sv-green" id="hud-income">$0.00</span>
+    </div>
+    <div class="hud-stat">
+      <span class="stat-lbl">Inventory</span>
+      <span class="stat-val sv-text" id="hud-inv">0</span>
+    </div>
+    <div class="hud-stat">
+      <span class="stat-lbl">Lifetime</span>
+      <span class="stat-val sv-gold" id="hud-lifetime">$0</span>
+    </div>
+  </div>
+  <div class="hud-right">
+    <button class="btn-hud" onclick="openBulkFilament()">+ FILAMENT</button>
+    <button class="btn-hud" onclick="saveGame()">💾 SAVE</button>
+    <button class="btn-hud" onclick="resetConfirm()">⚙</button>
+  </div>
+</header>
+
+<!-- Tabs -->
+<nav id="tabs">
+  <button class="tab active" onclick="switchTab('printers')" id="tab-btn-printers"><span class="tab-icon">🖨</span>PRINTERS</button>
+  <button class="tab" onclick="switchTab('products')" id="tab-btn-products"><span class="tab-icon">📦</span>PRODUCTS</button>
+  <button class="tab" onclick="switchTab('upgrades')" id="tab-btn-upgrades"><span class="tab-icon">🔬</span>UPGRADES</button>
+  <button class="tab" onclick="switchTab('automation')" id="tab-btn-automation"><span class="tab-icon">🤖</span>AUTOMATION</button>
+  <button class="tab" onclick="switchTab('stats')" id="tab-btn-stats"><span class="tab-icon">📊</span>STATS</button>
+</nav>
+
+<div id="content">
+
+  <!-- PRINTERS TAB -->
+  <div class="tab-panel active" id="tab-printers">
+    <div id="active-printers-section"></div>
+    <div class="section-gap">
+      <div class="section-hdr"><h2>BUY PRINTERS</h2><div class="hdr-line"></div></div>
+      <div class="grid-3" id="buy-printers-grid"></div>
+    </div>
+    <div class="section-gap">
+      <div class="filament-section">
+        <div class="fil-header">
+          <div class="fil-title">🧵 Filament Stock</div>
+          <div class="fil-stock" id="fil-stock-display">500g</div>
+        </div>
+        <div class="fil-buttons" id="fil-buttons"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRODUCTS TAB -->
+  <div class="tab-panel" id="tab-products">
+    <div id="order-ticker-wrap"></div>
+    <div class="section-hdr"><h2>SELL INVENTORY</h2><div class="hdr-line"></div>
+      <button class="btn btn-green btn-sm" onclick="sellAll()">💰 SELL ALL</button>
+    </div>
+    <div id="sell-grid" class="grid-3" style="margin-bottom:20px"></div>
+    <div class="section-hdr"><h2>PRODUCT CATALOGUE</h2><div class="hdr-line"></div></div>
+    <div class="grid-3" id="product-grid"></div>
+  </div>
+
+  <!-- UPGRADES TAB -->
+  <div class="tab-panel" id="tab-upgrades">
+    <div id="upgrades-content"></div>
+  </div>
+
+  <!-- AUTOMATION TAB -->
+  <div class="tab-panel" id="tab-automation">
+    <div id="automation-content"></div>
+  </div>
+
+  <!-- STATS TAB -->
+  <div class="tab-panel" id="tab-stats">
+    <div id="stats-content"></div>
+  </div>
+
+</div>
+
+<!-- Toasts -->
+<div id="toasts"></div>
+<!-- Floats -->
+<div id="floats"></div>
+
+<!-- Debug Console -->
+<div id="debug">
+  <div class="debug-header">
+    ⬡ DEBUG CONSOLE
+    <span onclick="toggleDebug()" style="cursor:pointer;opacity:.6">[ CLOSE ]</span>
+  </div>
+  <div id="debug-log"></div>
+  <div class="debug-input-row">
+    <input id="debug-input" placeholder="Enter cheat code..." onkeydown="if(event.key==='Enter')execDebug()">
+    <button id="debug-exec" onclick="execDebug()">RUN</button>
+  </div>
+</div>
+
+<!-- Bulk Order Modal -->
+<div id="bulk-modal">
+  <div class="modal-box">
+    <div class="modal-title">📬 BULK ORDER INCOMING!</div>
+    <div class="modal-body" id="bulk-modal-body">A customer wants a big order!</div>
+    <div class="modal-reward" id="bulk-modal-reward">$0</div>
+    <div class="modal-btns">
+      <button class="btn btn-green" onclick="acceptBulkOrder()">✅ ACCEPT</button>
+      <button class="btn btn-ghost" onclick="declineBulkOrder()">❌ DECLINE</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========================
+// GAME DATA
+// ========================
+const VERSION = '1.1.0';
+
+const PRODUCTS = {
+  keychain:     { id:'keychain',     name:'Keychains',        icon:'🔑', color:'#4a9eff', baseValue:2.50,  filament:15,  printTime:8,   unlockCost:0,     desc:'Popular and quick to print' },
+  phone_stand:  { id:'phone_stand',  name:'Phone Stand',      icon:'📱', color:'#00d4c8', baseValue:9.00,  filament:50,  printTime:28,  unlockCost:50,    desc:'Remote workers love these' },
+  miniature:    { id:'miniature',    name:'Miniature Figure', icon:'🎲', color:'#a78bfa', baseValue:22.00, filament:80,  printTime:60,  unlockCost:250,   desc:'Tabletop RPG community' },
+  cable_org:    { id:'cable_org',    name:'Cable Organizer',  icon:'🔌', color:'#2dd98a', baseValue:14.00, filament:65,  printTime:38,  unlockCost:150,   desc:'Home office essential' },
+  planter:      { id:'planter',      name:'Deco Planter',     icon:'🌱', color:'#27ae60', baseValue:32.00, filament:200, printTime:110, unlockCost:800,   desc:'High demand on Etsy' },
+  cosplay_prop: { id:'cosplay_prop', name:'Cosplay Prop',     icon:'⚔️', color:'#e74c3c', baseValue:110.0, filament:480, printTime:320, unlockCost:5000,  desc:'Premium custom orders' },
+  industrial:   { id:'industrial',   name:'Industrial Part',  icon:'⚙️', color:'#f39c12', baseValue:175.0, filament:650, printTime:420, unlockCost:15000, desc:'B2B manufacturing contracts' },
+};
+
+const PRINTER_TYPES = {
+  ender3:    { id:'ender3',    name:'Ender 3 Clone',     icon:'🖨️', color:'#6b6880', cost:0,     speed:1.0,  eff:1.0,  maxOwn:4, desc:'Your trusty starter. Slow but reliable.' },
+  bambu_a1:  { id:'bambu_a1', name:'Bambu Lab A1',       icon:'🔥', color:'#ff6b2b', cost:800,   speed:2.5,  eff:1.1,  maxOwn:6, desc:'Fast CoreXY. A real game changer.' },
+  bambu_x1c: { id:'bambu_x1c',name:'Bambu X1 Carbon',   icon:'⚡', color:'#00d4c8', cost:3500,  speed:5.0,  eff:1.25, maxOwn:6, desc:'Multi-color, blazing fast. Industry standard.' },
+  resin:     { id:'resin',    name:'Photon Mono M5S',    icon:'💎', color:'#a78bfa', cost:2200,  speed:3.5,  eff:0.85, maxOwn:4, desc:'Ultra-detail resin. +60% miniature value.', bonusProd:'miniature', bonusMult:1.6 },
+  voron:     { id:'voron',    name:'Voron 2.4 350',      icon:'🚀', color:'#e74c3c', cost:9500,  speed:9.0,  eff:1.4,  maxOwn:4, desc:'DIY beast. Extreme speed & build volume.' },
+  industrial:{ id:'industrial',name:'Industrial FDM',    icon:'🏭', color:'#f39c12', cost:55000, speed:18.0, eff:1.65, maxOwn:3, desc:'Commercial-grade. Handles bulk orders.' },
+};
+
+const UPGRADES = {
+  // Speed
+  slicer_v2:      { id:'slicer_v2',      cat:'speed',      name:'Slicer Pro 2.0',      icon:'💻', cost:120,   desc:'Optimised print profiles.', effect:'+20% print speed',      req:[],                fn:s=>{s.speedMult*=1.2} },
+  gyroid:         { id:'gyroid',         cat:'speed',      name:'Gyroid Infill',        icon:'🔺', cost:350,   desc:'Stronger, faster infill.',  effect:'+18% speed, −8% filament', req:['slicer_v2'],     fn:s=>{s.speedMult*=1.18; s.filamentMult*=0.92} },
+  klipper:        { id:'klipper',        cat:'speed',      name:'Klipper Firmware',     icon:'⚙️', cost:800,   desc:'Input shaping enabled.',    effect:'+35% print speed',      req:['slicer_v2'],     fn:s=>{s.speedMult*=1.35} },
+  pressure_adv:   { id:'pressure_adv',   cat:'speed',      name:'Pressure Advance',     icon:'📐', cost:2500,  desc:'Perfect corner geometry.',  effect:'+25% speed, +12% value', req:['klipper'],       fn:s=>{s.speedMult*=1.25; s.valueMult*=1.12} },
+  // Efficiency
+  bulk_filament:  { id:'bulk_filament',  cat:'efficiency', name:'Bulk Filament Deal',   icon:'📦', cost:200,   desc:'Wholesale supplier deal.',  effect:'−25% filament cost',    req:[],                fn:s=>{s.filamentPrice*=0.75} },
+  pla_plus:       { id:'pla_plus',       cat:'efficiency', name:'Premium PLA+',          icon:'✨', cost:500,   desc:'Higher quality material.',  effect:'+18% product value',    req:['bulk_filament'], fn:s=>{s.valueMult*=1.18} },
+  cf_petg:        { id:'cf_petg',        cat:'efficiency', name:'Carbon Fiber PETG',    icon:'🔩', cost:2000,  desc:'Industrial-grade material.',effect:'+45% industrial value', req:['pla_plus'],      fn:s=>{s.industrialBonus*=1.45} },
+  filament_dryer: { id:'filament_dryer', cat:'efficiency', name:'Filament Dryer',       icon:'🌡️', cost:180,   desc:'Eliminate moisture issues.', effect:'−60% print failures',  req:[],                fn:s=>{s.failRate*=0.4} },
+  // Business
+  etsy_store:     { id:'etsy_store',     cat:'business',   name:'Etsy Shop',            icon:'🛍️', cost:300,   desc:'Your online storefront.',   effect:'+12% value, unlock auto-sell', req:[],            fn:s=>{s.valueMult*=1.12; s.unlockedAutoSell=true} },
+  social_media:   { id:'social_media',   cat:'business',   name:'Social Media Presence',icon:'📱', cost:750,   desc:'Influencer collabs.',       effect:'+22% all values',       req:['etsy_store'],    fn:s=>{s.valueMult*=1.22} },
+  biz_license:    { id:'biz_license',    cat:'business',   name:'Business License',     icon:'📋', cost:1500,  desc:'Official registered biz.',  effect:'Enable bulk orders',    req:['social_media'],  fn:s=>{s.bulkOrdersEnabled=true} },
+  workshop_exp:   { id:'workshop_exp',   cat:'business',   name:'Workshop Expansion',   icon:'🏠', cost:8000,  desc:'More space, more printers.', effect:'Remove printer limits', req:['biz_license'],   fn:s=>{s.noPrinterLimit=true} },
+  // Quality
+  bed_leveling:   { id:'bed_leveling',   cat:'quality',    name:'Auto Bed Leveling',    icon:'📏', cost:150,   desc:'CR Touch probe installed.', effect:'Eliminate bed failures',req:[],                fn:s=>{s.failRate*=0.5} },
+  enclosure:      { id:'enclosure',      cat:'quality',    name:'Printer Enclosure',    icon:'📦', cost:400,   desc:'Heated enclosure build.',   effect:'+18% quality bonus',    req:[],                fn:s=>{s.valueMult*=1.18} },
+  dual_ext:       { id:'dual_ext',       cat:'quality',    name:'Dual Extruder',        icon:'🔧', cost:1200,  desc:'Multi-material printing.',  effect:'+28% decorative items', req:['enclosure'],     fn:s=>{s.decorativeBonus*=1.28} },
+  post_proc:      { id:'post_proc',      cat:'quality',    name:'Post-Processing Kit',  icon:'🎨', cost:3000,  desc:'Sanding, priming, paint.',  effect:'+35% all product values',req:['dual_ext'],     fn:s=>{s.valueMult*=1.35} },
+  resin_wash:     { id:'resin_wash',     cat:'quality',    name:'UV Cure Station',      icon:'☀️', cost:5500,  desc:'Professional resin finish.', effect:'+50% resin value',     req:['post_proc'],     fn:s=>{s.resinBonus*=1.5} },
+};
+
+const AUTOMATION_ITEMS = {
+  auto_print:   { id:'auto_print',   name:'Auto Print Queue',        icon:'🔄', cost:500,   tier:1, desc:'Printers auto-restart when a job completes. Requires filament.' },
+  auto_sell:    { id:'auto_sell',    name:'Auto-Sell System',        icon:'🤝', cost:800,   tier:1, desc:'Auto-sell all finished products every 30 sec. Requires Etsy Shop.', req:'etsy_store' },
+  auto_filament:{ id:'auto_filament',name:'Filament Auto-Resupply',  icon:'📦', cost:1200,  tier:1, desc:'Automatically orders 1kg filament when stock drops below threshold.' },
+  batch_print:  { id:'batch_print',  name:'Batch Print Manager',     icon:'⚡', cost:3500,  tier:2, desc:'Queue multiple products. Printers cycle through the queue.' },
+  price_opt:    { id:'price_opt',    name:'Dynamic Pricing AI',      icon:'📈', cost:6000,  tier:2, desc:'Optimises sell timing for +22% revenue on all auto-sales.' },
+  jit_logistics:{ id:'jit_logistics',name:'JIT Filament Logistics',  icon:'🚚', cost:12000, tier:3, desc:'Bulk delivery system. Filament costs 28% less across the board.' },
+  ai_scheduler: { id:'ai_scheduler', name:'AI Print Scheduler',      icon:'🤖', cost:25000, tier:3, desc:'Optimal job scheduling across all printers. +18% throughput.' },
+};
+
+const ACHIEVEMENTS = [
+  { id:'first_print',    name:'First Layer',        icon:'🖨️', desc:'Complete your first print',         check:s=>s.totalPrints>=1 },
+  { id:'fifty_prints',   name:'Hobbyist',            icon:'🔑', desc:'Complete 50 prints',                check:s=>s.totalPrints>=50 },
+  { id:'five_hundred',   name:'Maker Mode',          icon:'🔥', desc:'Complete 500 prints',               check:s=>s.totalPrints>=500 },
+  { id:'first_k',        name:'Four Figures',        icon:'💰', desc:'Earn your first $1,000',            check:s=>s.lifetimeEarned>=1000 },
+  { id:'ten_k',          name:'Side Hustle',         icon:'📱', desc:'Earn $10,000 lifetime',             check:s=>s.lifetimeEarned>=10000 },
+  { id:'hundred_k',      name:'Small Business',      icon:'🏠', desc:'Earn $100,000 lifetime',            check:s=>s.lifetimeEarned>=100000 },
+  { id:'million',        name:'Print Millionaire',   icon:'💎', desc:'Earn $1,000,000 lifetime',          check:s=>s.lifetimeEarned>=1000000 },
+  { id:'five_printers',  name:'Print Farm Begins',   icon:'🏭', desc:'Own 5 printers simultaneously',    check:s=>s.printers.length>=5 },
+  { id:'all_products',   name:'Full Catalogue',      icon:'📦', desc:'Unlock all products',               check:s=>Object.keys(PRODUCTS).every(k=>s.unlockedProducts.includes(k)) },
+  { id:'automation_king',name:'Automation King',     icon:'🤖', desc:'Unlock all automation modules',    check:s=>Object.keys(AUTOMATION_ITEMS).every(k=>s.automationOwned[k]) },
+  { id:'bulk_accepted',  name:'Big Client',          icon:'📬', desc:'Accept your first bulk order',     check:s=>s.bulkOrdersAccepted>=1 },
+  { id:'prestige_1',     name:'Scale Up',            icon:'⬆️', desc:'Complete your first Scale Up',     check:s=>s.prestigeCount>=1 },
+];
+
+// ========================
+// GAME STATE
+// ========================
+let G = null;
+let printerId = 0;
+
+function defaultState(shopName) {
+  return {
+    version: VERSION,
+    shopName: shopName || 'MY PRINT SHOP',
+    money: 50,
+    filament: 500,
+    inventory: {},
+    printers: [{ id: ++printerId, typeId:'ender3', progress:0, printing:false, job:'keychain', totalPrints:0, active:true }],
+    unlockedProducts: ['keychain'],
+    upgrades: {},
+    automationOwned: {},
+    automationActive: {},
+    // Multipliers (recomputed from upgrades)
+    speedMult: 1.0,
+    filamentMult: 1.0,
+    filamentPrice: 0.022,
+    valueMult: 1.0,
+    failRate: 0.08,
+    industrialBonus: 1.0,
+    decorativeBonus: 1.0,
+    resinBonus: 1.0,
+    unlockedAutoSell: false,
+    bulkOrdersEnabled: false,
+    noPrinterLimit: false,
+    // Stats
+    totalPrints: 0,
+    lifetimeEarned: 0,
+    totalFilamentUsed: 0,
+    playTime: 0,
+    startTime: Date.now(),
+    // Auto timers
+    autoSellTimer: 0,
+    bulkOrderTimer: 0,
+    bulkOrderInterval: 120,
+    // Bulk orders
+    bulkOrdersAccepted: 0,
+    pendingBulkOrder: null,
+    // Prestige
+    prestigeCount: 0,
+    prestigeMult: 1.0,
+    // Achievements
+    achievements: [],
+    // Income tracking
+    incomeSamples: [],
+    lastIncomeCalc: Date.now(),
+    incomeRate: 0,
+    // Phase
+    phase: 'HOBBYIST',
+    // Settings
+    selectedProduct: 'keychain',
+  };
+}
+
+// ========================
+// GAME LOOP
+// ========================
+let lastTick = 0;
+let frameHandle;
+
+function startLoop() {
+  lastTick = performance.now();
+  frameHandle = requestAnimationFrame(loop);
+}
+
+function loop(now) {
+  const dt = Math.min((now - lastTick) / 1000, 5);
+  lastTick = now;
+  tick(dt);
+  render();
+  frameHandle = requestAnimationFrame(loop);
+}
+
+function tick(dt) {
+  if (!G) return;
+  G.playTime += dt;
+
+  // Process printers
+  for (const p of G.printers) {
+    if (!p.active || !p.job) continue;
+    if (!p.printing) {
+      if (G.automationOwned.auto_print && G.automationActive.auto_print) {
+        tryStartPrint(p);
+      }
+      continue;
+    }
+    const pType = PRINTER_TYPES[p.typeId];
+    const prod = PRODUCTS[p.job];
+    if (!prod) continue;
+    const speedBonus = G.ai_scheduler_bonus || 1.0;
+    const rate = (pType.speed * G.speedMult * speedBonus * 100) / prod.printTime;
+    p.progress += rate * dt;
+    if (p.progress >= 100) {
+      p.progress = 0;
+      completePrint(p, p.job);
+      p.printing = false;
+      if (G.automationOwned.auto_print && G.automationActive.auto_print) {
+        tryStartPrint(p);
+      }
+    }
+  }
+
+  // Auto-sell
+  if (G.automationOwned.auto_sell && G.automationActive.auto_sell) {
+    G.autoSellTimer += dt;
+    const interval = 30;
+    if (G.autoSellTimer >= interval) {
+      G.autoSellTimer = 0;
+      autoSellAll();
+    }
+  }
+
+  // Auto-filament
+  if (G.automationOwned.auto_filament && G.automationActive.auto_filament) {
+    const threshold = 600;
+    if (G.filament < threshold) {
+      const qty = 1000;
+      const cost = qty * G.filamentPrice;
+      if (G.money >= cost) {
+        G.money -= cost;
+        G.filament += qty;
+        toast(`📦 Auto-resupply: +${qty}g filament`, 'info');
+      }
+    }
+  }
+
+  // JIT logistics — continuous discount applied via multiplier
+  G.ai_scheduler_bonus = (G.automationOwned.ai_scheduler && G.automationActive.ai_scheduler) ? 1.18 : 1.0;
+
+  // Bulk orders
+  if (G.bulkOrdersEnabled && !G.pendingBulkOrder) {
+    G.bulkOrderTimer += dt;
+    if (G.bulkOrderTimer >= G.bulkOrderInterval) {
+      G.bulkOrderTimer = 0;
+      G.bulkOrderInterval = 90 + Math.random() * 120;
+      triggerBulkOrder();
+    }
+  }
+
+  // Income rate (rolling 10s window)
+  G.incomeSamples = G.incomeSamples.filter(s => now_t() - s.t < 10000);
+  const totalRecent = G.incomeSamples.reduce((a,s) => a+s.v, 0);
+  const window = Math.min(10, G.playTime);
+  G.incomeRate = window > 0 ? totalRecent / window : 0;
+
+  // Phase update
+  updatePhase();
+
+  // Achievement check
+  checkAchievements();
+
+  // Auto-save every 60s
+  if (Math.floor(G.playTime) % 60 === 0 && Math.floor(G.playTime) > 0) {
+    const key = `3dp_autosave_${Math.floor(G.playTime)}`;
+    if (!sessionStorage.getItem(key)) {
+      sessionStorage.setItem(key, '1');
+      saveGame(true);
+    }
+  }
+}
+
+function now_t() { return performance.now(); }
+
+function tryStartPrint(printer) {
+  const prod = PRODUCTS[printer.job];
+  if (!prod) return;
+  const filCost = getFilamentCost(prod);
+  if (G.filament >= filCost) {
+    G.filament -= filCost;
+    G.totalFilamentUsed += filCost;
+    printer.printing = true;
+    printer.progress = 0;
+  }
+}
+
+function completePrint(printer, productId) {
+  // Failure check
+  if (Math.random() < G.failRate) {
+    toast(`⚠️ Print failed on ${PRINTER_TYPES[printer.typeId].name}!`, 'warning');
+    return;
+  }
+  G.inventory[productId] = (G.inventory[productId] || 0) + 1;
+  printer.totalPrints++;
+  G.totalPrints++;
+
+  // Dynamic pricing bonus
+  const priceOptBonus = (G.automationOwned.price_opt && G.automationActive.price_opt) ? 1.22 : 1.0;
+  const val = getProductValue(productId, printer.typeId) * priceOptBonus;
+  // Don't add money yet — money comes from selling
+}
+
+function manualStartPrint(printerId) {
+  const p = G.printers.find(x => x.id === printerId);
+  if (!p || p.printing) return;
+  const prod = PRODUCTS[p.job];
+  if (!prod) return;
+  const filCost = getFilamentCost(prod);
+  if (G.filament < filCost) {
+    toast('⚠️ Not enough filament!', 'warning'); return;
+  }
+  G.filament -= filCost;
+  G.totalFilamentUsed += filCost;
+  p.printing = true;
+  p.progress = 0;
+}
+
+function stopPrinter(printerId) {
+  const p = G.printers.find(x => x.id === printerId);
+  if (p) { p.printing = false; p.progress = 0; }
+}
+
+function getFilamentCost(prod) {
+  return prod.filament * G.filamentMult;
+}
+
+function getProductValue(productId, printerTypeId) {
+  const prod = PRODUCTS[productId];
+  if (!prod) return 0;
+  let v = prod.baseValue * G.valueMult * G.prestigeMult;
+  const pType = PRINTER_TYPES[printerTypeId];
+  // Printer-specific bonuses
+  if (pType && pType.bonusProd === productId) v *= pType.bonusMult;
+  // Industrial bonus
+  if (productId === 'industrial') v *= G.industrialBonus;
+  // Decorative bonus
+  if (['planter','cosplay_prop','miniature'].includes(productId)) v *= G.decorativeBonus;
+  // Resin bonus
+  if (printerTypeId === 'resin') v *= G.resinBonus;
+  return Math.round(v * 100) / 100;
+}
+
+// ========================
+// SELL
+// ========================
+function sellProduct(productId, qty) {
+  const inv = G.inventory[productId] || 0;
+  if (inv < 1) return;
+  const amount = Math.min(qty || 1, inv);
+  G.inventory[productId] = inv - amount;
+  const val = getProductValue(productId, 'ender3') * amount;
+  const priceOptBonus = (G.automationOwned.price_opt && G.automationActive.price_opt) ? 1.22 : 1.0;
+  const earned = val * priceOptBonus;
+  G.money += earned;
+  G.lifetimeEarned += earned;
+  G.incomeSamples.push({ t: now_t(), v: earned });
+  spawnFloat(`+$${fmtNum(earned)}`, event);
+  return earned;
+}
+
+function sellAll() {
+  let total = 0;
+  for (const pid of Object.keys(G.inventory)) {
+    const inv = G.inventory[pid];
+    if (inv > 0) {
+      const v = getProductValue(pid, 'ender3');
+      const priceOptBonus = (G.automationOwned.price_opt && G.automationActive.price_opt) ? 1.22 : 1.0;
+      total += v * inv * priceOptBonus;
+      G.inventory[pid] = 0;
+    }
+  }
+  if (total > 0) {
+    G.money += total;
+    G.lifetimeEarned += total;
+    G.incomeSamples.push({ t: now_t(), v: total });
+    toast(`💰 Sold everything! +$${fmtNum(total)}`, 'success');
+  }
+}
+
+function autoSellAll() {
+  let total = 0;
+  for (const pid of Object.keys(G.inventory)) {
+    const inv = G.inventory[pid];
+    if (inv > 0) {
+      const v = getProductValue(pid, 'ender3');
+      const priceOptBonus = (G.automationOwned.price_opt && G.automationActive.price_opt) ? 1.22 : 1.0;
+      total += v * inv * priceOptBonus;
+      G.inventory[pid] = 0;
+    }
+  }
+  if (total > 0) {
+    G.money += total;
+    G.lifetimeEarned += total;
+    G.incomeSamples.push({ t: now_t(), v: total });
+  }
+}
+
+// ========================
+// BUY PRINTER
+// ========================
+function buyPrinter(typeId) {
+  const pt = PRINTER_TYPES[typeId];
+  if (!pt) return;
+  const owned = G.printers.filter(p => p.typeId === typeId).length;
+  const maxOwn = G.noPrinterLimit ? 20 : pt.maxOwn;
+  if (owned >= maxOwn) { toast(`Max ${maxOwn} ${pt.name} printers!`, 'warning'); return; }
+  if (G.money < pt.cost) { toast('Not enough money!', 'error'); return; }
+  G.money -= pt.cost;
+  const defaultJob = G.unlockedProducts[G.unlockedProducts.length - 1] || 'keychain';
+  G.printers.push({ id: ++printerId, typeId, progress:0, printing:false, job:defaultJob, totalPrints:0, active:true });
+  toast(`🖨️ ${pt.name} added to your workshop!`, 'success');
+}
+
+// ========================
+// BUY FILAMENT
+// ========================
+function buyFilament(grams) {
+  const cost = grams * G.filamentPrice;
+  if (G.money < cost) { toast('Not enough money!', 'error'); return; }
+  G.money -= cost;
+  G.filament += grams;
+  toast(`🧵 +${fmtG(grams)} filament`, 'info');
+}
+
+function openBulkFilament() {
+  // Quick buy shortcuts
+  buyFilament(500);
+}
+
+// ========================
+// UPGRADES
+// ========================
+function buyUpgrade(id) {
+  const upg = UPGRADES[id];
+  if (!upg || G.upgrades[id]) return;
+  if (G.money < upg.cost) { toast('Not enough money!', 'error'); return; }
+  const unmet = (upg.req || []).filter(r => !G.upgrades[r]);
+  if (unmet.length > 0) { toast('Requirements not met!', 'warning'); return; }
+  G.money -= upg.cost;
+  G.upgrades[id] = true;
+  upg.fn(G);
+  toast(`🔬 ${upg.name} researched!`, 'success');
+}
+
+// ========================
+// AUTOMATION
+// ========================
+function buyAutomation(id) {
+  const a = AUTOMATION_ITEMS[id];
+  if (!a || G.automationOwned[id]) return;
+  if (a.req && !G.upgrades[a.req]) { toast(`Requires ${UPGRADES[a.req]?.name || a.req}!`, 'warning'); return; }
+  if (G.money < a.cost) { toast('Not enough money!', 'error'); return; }
+  G.money -= a.cost;
+  G.automationOwned[id] = true;
+  G.automationActive[id] = true;
+  toast(`🤖 ${a.name} installed!`, 'success');
+}
+
+function toggleAutomation(id) {
+  if (!G.automationOwned[id]) return;
+  G.automationActive[id] = !G.automationActive[id];
+}
+
+// ========================
+// PRODUCTS
+// ========================
+function unlockProduct(id) {
+  const prod = PRODUCTS[id];
+  if (!prod || G.unlockedProducts.includes(id)) return;
+  if (G.money < prod.unlockCost) { toast('Not enough money!', 'error'); return; }
+  G.money -= prod.unlockCost;
+  G.unlockedProducts.push(id);
+  toast(`📦 ${prod.name} unlocked! Check your catalogue.`, 'success');
+}
+
+// ========================
+// BULK ORDERS
+// ========================
+function triggerBulkOrder() {
+  const prods = G.unlockedProducts;
+  const pid = prods[Math.floor(Math.random() * prods.length)];
+  const prod = PRODUCTS[pid];
+  const qty = 5 + Math.floor(Math.random() * 15);
+  const bonus = 1.3 + Math.random() * 0.5;
+  const reward = prod.baseValue * qty * bonus * G.valueMult * G.prestigeMult;
+  G.pendingBulkOrder = { productId:pid, qty, reward:Math.round(reward*100)/100 };
+  document.getElementById('bulk-modal-body').innerHTML = `A customer wants <strong>${qty}x ${prod.icon} ${prod.name}</strong> ASAP!`;
+  document.getElementById('bulk-modal-reward').textContent = `$${fmtNum(G.pendingBulkOrder.reward)}`;
+  document.getElementById('bulk-modal').classList.add('open');
+}
+
+function acceptBulkOrder() {
+  if (!G.pendingBulkOrder) return;
+  const inv = G.inventory[G.pendingBulkOrder.productId] || 0;
+  if (inv >= G.pendingBulkOrder.qty) {
+    G.inventory[G.pendingBulkOrder.productId] -= G.pendingBulkOrder.qty;
+    G.money += G.pendingBulkOrder.reward;
+    G.lifetimeEarned += G.pendingBulkOrder.reward;
+    G.incomeSamples.push({ t: now_t(), v: G.pendingBulkOrder.reward });
+    G.bulkOrdersAccepted++;
+    toast(`📬 Bulk order fulfilled! +$${fmtNum(G.pendingBulkOrder.reward)}`, 'success');
+  } else {
+    toast(`❌ Not enough inventory! Need ${G.pendingBulkOrder.qty} items.`, 'error');
+  }
+  G.pendingBulkOrder = null;
+  document.getElementById('bulk-modal').classList.remove('open');
+}
+
+function declineBulkOrder() {
+  G.pendingBulkOrder = null;
+  document.getElementById('bulk-modal').classList.remove('open');
+}
+
+// ========================
+// PHASE & PRESTIGE
+// ========================
+function updatePhase() {
+  const e = G.lifetimeEarned;
+  let phase = 'HOBBYIST';
+  if (e >= 1000) phase = 'MAKER';
+  if (e >= 10000) phase = 'BUSINESS';
+  if (e >= 100000) phase = 'FARM';
+  if (e >= 1000000) phase = 'EMPIRE';
+  G.phase = phase;
+}
+
+function tryPrestige() {
+  const req = 100000 * Math.pow(5, G.prestigeCount);
+  if (G.lifetimeEarned < req) { toast(`Need $${fmtNum(req)} lifetime earned to Scale Up!`, 'warning'); return; }
+  if (!confirm(`SCALE UP your business?\n\nYou'll restart with:\n• ×${(1.5*(G.prestigeCount+1)).toFixed(1)} permanent earnings multiplier\n• $500 starting cash\n• 800g filament\n\nAll printers, upgrades, and unlocks will reset.`)) return;
+  const newMult = 1.0 + 0.5 * (G.prestigeCount + 1);
+  const shopName = G.shopName;
+  const pCount = G.prestigeCount + 1;
+  G = defaultState(shopName);
+  G.prestigeMult = newMult;
+  G.prestigeCount = pCount;
+  G.money = 500;
+  G.filament = 800;
+  toast(`⬆️ Scaled Up! ×${newMult.toFixed(1)} earnings multiplier active!`, 'success');
+  saveGame(true);
+}
+
+// ========================
+// ACHIEVEMENTS
+// ========================
+function checkAchievements() {
+  for (const ach of ACHIEVEMENTS) {
+    if (!G.achievements.includes(ach.id) && ach.check(G)) {
+      G.achievements.push(ach.id);
+      toast(`🏆 Achievement: ${ach.name}!`, 'success');
+    }
+  }
+}
+
+// ========================
+// RENDER
+// ========================
+let activeTab = 'printers';
+let renderDirty = true;
+
+function render() {
+  // HUD always updates
+  renderHUD();
+  if (activeTab === 'printers') renderPrinters();
+  else if (activeTab === 'products') renderProducts();
+  else if (activeTab === 'upgrades') renderUpgrades();
+  else if (activeTab === 'automation') renderAutomation();
+  else if (activeTab === 'stats') renderStats();
+}
+
+function renderHUD() {
+  el('hud-brand').textContent = G.shopName;
+  el('hud-money').textContent = '$' + fmtNum(G.money);
+  el('hud-filament').textContent = fmtG(G.filament);
+  el('hud-income').textContent = '$' + fmtNum(G.incomeRate) + '/s';
+  const totalInv = Object.values(G.inventory).reduce((a,b)=>a+b,0);
+  el('hud-inv').textContent = totalInv + ' items';
+  el('hud-lifetime').textContent = '$' + fmtNum(G.lifetimeEarned);
+  const badge = el('phase-badge');
+  badge.textContent = G.phase;
+  badge.className = 'phase-badge phase-' + G.phase.toLowerCase();
+}
+
+function renderPrinters() {
+  // Active printers
+  const wrap = el('active-printers-section');
+  let html = '<div class="section-hdr"><h2>YOUR PRINTERS (' + G.printers.length + ')</h2><div class="hdr-line"></div></div>';
+
+  for (const p of G.printers) {
+    const pt = PRINTER_TYPES[p.typeId];
+    const prod = PRODUCTS[p.job];
+    const isActive = p.printing;
+    html += `<div class="printer-card ${isActive ? 'active-print' : ''}">
+      <div class="printer-row">
+        <div style="font-size:28px">${pt.icon}</div>
+        <div class="printer-info">
+          <div class="printer-name">${pt.name}</div>
+          <div class="printer-id">ID #${p.id} · ${p.totalPrints} prints · ${prod ? prod.icon + prod.name : 'No job'}</div>
+        </div>
+        <div class="printer-controls">
+          <select class="sel" onchange="setPrinterJob(${p.id}, this.value)">
+            ${G.unlockedProducts.map(pid => `<option value="${pid}" ${p.job===pid?'selected':''}>${PRODUCTS[pid].icon} ${PRODUCTS[pid].name}</option>`).join('')}
+          </select>
+          ${!isActive
+            ? `<button class="btn btn-primary btn-sm" onclick="manualStartPrint(${p.id})">▶ PRINT</button>`
+            : `<button class="btn btn-stop btn-sm" onclick="stopPrinter(${p.id})">■ STOP</button>`}
+          <button class="btn btn-ghost btn-sm" onclick="sellPrinter(${p.id})" title="Sell this printer">🗑</button>
+        </div>
+      </div>`;
+    if (isActive && prod) {
+      const pct = Math.round(p.progress);
+      const pt2 = PRINTER_TYPES[p.typeId];
+      const filCost = fmtG(getFilamentCost(prod));
+      html += `<div class="progress-wrap">
+        <div class="progress-label">
+          <span>Printing ${prod.icon} ${prod.name} · ${filCost} filament → $${fmtNum(getProductValue(p.job, p.typeId))}</span>
+          <span>${pct}%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" style="width:${pct}%;background:${pt2.color}"></div>
+        </div>
+      </div>`;
+    }
+    html += '</div>';
+  }
+  wrap.innerHTML = html;
+
+  // Buy printers grid
+  const grid = el('buy-printers-grid');
+  let bhtml = '';
+  for (const [tid, pt] of Object.entries(PRINTER_TYPES)) {
+    const owned = G.printers.filter(p => p.typeId === tid).length;
+    const maxOwn = G.noPrinterLimit ? 20 : pt.maxOwn;
+    const canAfford = G.money >= pt.cost;
+    const atMax = owned >= maxOwn;
+    if (atMax) continue;
+    bhtml += `<div class="buy-printer-card ${!canAfford ? 'cannot-afford' : ''}" onclick="${canAfford && !atMax ? `buyPrinter('${tid}')` : ''}">
+      <div class="bpc-header">
+        <span style="font-size:24px">${pt.icon}</span>
+        <div>
+          <div class="bpc-name">${pt.name} <span style="font-size:11px;color:var(--text2)">(${owned}/${maxOwn})</span></div>
+          <div class="bpc-cost">${tid === 'ender3' && owned === 0 ? 'FREE' : '$' + fmtNum(pt.cost)}</div>
+        </div>
+      </div>
+      <div class="bpc-desc">${pt.desc}</div>
+      <div class="bpc-stats">
+        <span class="bpc-stat">Speed: <span>${pt.speed}×</span></span>
+        <span class="bpc-stat">Efficiency: <span>${(pt.eff*100).toFixed(0)}%</span></span>
+        ${pt.bonusProd ? `<span class="bpc-stat" style="color:var(--purple)">+${((pt.bonusMult-1)*100).toFixed(0)}% ${PRODUCTS[pt.bonusProd]?.name}</span>` : ''}
+      </div>
+    </div>`;
+  }
+  if (!bhtml) bhtml = '<div class="empty-state">🏭 All available printers purchased! Workshop Expansion unlocks more slots.</div>';
+  grid.innerHTML = bhtml;
+
+  // Filament section
+  const filDisplay = el('fil-stock-display');
+  filDisplay.textContent = fmtG(G.filament);
+  const filBtns = el('fil-buttons');
+  const amounts = [100, 500, 1000, 5000, 10000];
+  filBtns.innerHTML = amounts.map(g => {
+    const cost = g * G.filamentPrice;
+    const canAfford = G.money >= cost;
+    const jit = G.automationOwned.jit_logistics && G.automationActive.jit_logistics ? ' (−28%)' : '';
+    const displayCost = (G.automationOwned.jit_logistics && G.automationActive.jit_logistics) ? cost * 0.72 : cost;
+    return `<button class="btn btn-buy btn-sm" onclick="buyFilament(${g})" ${!canAfford?'disabled':''}>${fmtG(g)} — $${fmtNum(displayCost)}${jit}</button>`;
+  }).join('');
+}
+
+function setPrinterJob(printerId, productId) {
+  const p = G.printers.find(x => x.id === printerId);
+  if (p) p.job = productId;
+}
+
+function sellPrinter(pid) {
+  const idx = G.printers.findIndex(p => p.id === pid);
+  if (idx < 0) return;
+  if (G.printers.length <= 1) { toast('You need at least one printer!', 'warning'); return; }
+  const pt = PRINTER_TYPES[G.printers[idx].typeId];
+  const refund = pt.cost * 0.4;
+  if (!confirm(`Sell ${pt.name} for $${fmtNum(refund)}?`)) return;
+  G.printers.splice(idx, 1);
+  G.money += refund;
+  toast(`🗑 Sold ${pt.name} for $${fmtNum(refund)}`, 'info');
+}
+
+function renderProducts() {
+  // Ticker
+  const tickerWrap = el('order-ticker-wrap');
+  if (G.bulkOrdersEnabled) {
+    tickerWrap.innerHTML = `<div class="order-ticker"><div class="ticker-dot"></div>Live market active · Bulk orders enabled · Dynamic pricing ${G.automationOwned.price_opt && G.automationActive.price_opt ? 'ON (+22%)' : 'OFF'}</div>`;
+  } else tickerWrap.innerHTML = '';
+
+  // Sell grid
+  const sellGrid = el('sell-grid');
+  let sellHtml = '';
+  for (const pid of G.unlockedProducts) {
+    const prod = PRODUCTS[pid];
+    const inv = G.inventory[pid] || 0;
+    if (inv === 0) continue;
+    const val = getProductValue(pid, 'ender3');
+    sellHtml += `<div class="card">
+      <div class="card-header">
+        <span class="card-icon">${prod.icon}</span>
+        <div><div class="card-title">${prod.name}</div><div class="card-sub">$${fmtNum(val)} each</div></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div class="inv-badge">📦 ${inv} in stock</div>
+        <div style="font-family:var(--font-mono);font-size:13px;color:var(--gold)">Value: $${fmtNum(val*inv)}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-green btn-sm" onclick="sellProduct('${pid}',1,event)">SELL 1</button>
+        <button class="btn btn-green btn-sm" onclick="sellProduct('${pid}',10,event)" ${inv<10?'disabled':''}>SELL 10</button>
+        <button class="btn btn-primary btn-sm" onclick="sellProductAll('${pid}',event)">SELL ALL</button>
+      </div>
+    </div>`;
+  }
+  if (!sellHtml) sellHtml = '<div class="empty-state">No inventory to sell.<br>Start printing!</div>';
+  sellGrid.innerHTML = sellHtml;
+
+  // Product catalogue
+  const grid = el('product-grid');
+  let html = '';
+  for (const [pid, prod] of Object.entries(PRODUCTS)) {
+    const unlocked = G.unlockedProducts.includes(pid);
+    const val = unlocked ? getProductValue(pid, 'ender3') : prod.baseValue;
+    const inv = G.inventory[pid] || 0;
+    const filCost = fmtG(prod.filament * G.filamentMult);
+    html += `<div class="product-card ${unlocked ? '' : 'locked'}">
+      <div class="product-color-bar" style="background:${prod.color}"></div>
+      <div class="product-icon">${prod.icon}</div>
+      <div class="product-name">${prod.name}</div>
+      <div class="product-value">$${fmtNum(val)}</div>
+      <div class="product-stats">
+        <div class="product-stat-row">🧵 ${filCost}</div>
+        <div class="product-stat-row">⏱ ${fmtTime(prod.printTime)}</div>
+      </div>
+      <div class="product-desc">${prod.desc}</div>
+      <div class="inv-badge">📦 ${inv} in stock</div>
+      ${!unlocked ? `<div class="unlock-overlay">
+        <span>🔒 LOCKED</span>
+        <span class="unlock-cost">$${fmtNum(prod.unlockCost)}</span>
+        <button class="btn btn-buy btn-sm" onclick="unlockProduct('${pid}')" ${G.money<prod.unlockCost?'disabled':''}>UNLOCK</button>
+      </div>` : ''}
+    </div>`;
+  }
+  grid.innerHTML = html;
+}
+
+function sellProductAll(pid, event) {
+  const inv = G.inventory[pid] || 0;
+  if (inv > 0) {
+    sellProduct(pid, inv, event);
+  }
+}
+
+function renderUpgrades() {
+  const wrap = el('upgrades-content');
+  const cats = { speed:'⚡ PRINT SPEED', efficiency:'📦 EFFICIENCY', business:'💼 BUSINESS', quality:'✨ QUALITY' };
+  let html = '';
+
+  if (G.prestigeCount > 0) {
+    html += `<div class="prestige-banner">
+      <div class="prestige-info">
+        <div class="prestige-title">⬆️ SCALE UP ACTIVE</div>
+        <div class="prestige-desc">You've scaled up ${G.prestigeCount}× — permanent earnings multiplier applied to all products.</div>
+      </div>
+      <div class="prestige-mult">×${G.prestigeMult.toFixed(1)}</div>
+    </div>`;
+  }
+
+  for (const [catId, catLabel] of Object.entries(cats)) {
+    html += `<div class="cat-header"><div class="cat-label">${catLabel}</div><div class="cat-line"></div></div>
+    <div class="upgrade-grid">`;
+    for (const [uid, upg] of Object.entries(UPGRADES)) {
+      if (upg.cat !== catId) continue;
+      const bought = !!G.upgrades[uid];
+      const reqsMet = (upg.req||[]).every(r => G.upgrades[r]);
+      const canAfford = G.money >= upg.cost;
+      let cls = 'upgrade-card';
+      if (bought) cls += ' bought';
+      else if (!reqsMet) cls += ' locked';
+      else if (canAfford) cls += ' affordable';
+      html += `<div class="${cls}">
+        <div class="upg-header">
+          <div class="upg-icon">${upg.icon}</div>
+          <div>
+            <div class="upg-title">${upg.name}</div>
+            <div class="upg-sub">${upg.cat}</div>
+          </div>
+        </div>
+        <div class="upg-desc">${upg.desc}</div>
+        <div class="upg-effect">${upg.effect}</div>
+        <div class="upg-bottom">
+          <div class="upg-cost">${bought ? '' : '$' + fmtNum(upg.cost)}</div>
+          ${bought
+            ? `<span class="bought-tag">✓ RESEARCHED</span>`
+            : reqsMet
+              ? `<button class="btn btn-primary btn-sm" onclick="buyUpgrade('${uid}')" ${!canAfford?'disabled':''}>RESEARCH</button>`
+              : `<span style="font-size:11px;color:var(--text3)">Requires: ${upg.req.map(r=>UPGRADES[r]?.name||r).join(', ')}</span>`}
+        </div>
+      </div>`;
+    }
+    html += '</div>';
+  }
+
+  // Prestige
+  const nextReq = 100000 * Math.pow(5, G.prestigeCount);
+  html += `<div class="cat-header"><div class="cat-label">⬆️ SCALE UP (PRESTIGE)</div><div class="cat-line"></div></div>
+  <div class="card" style="max-width:500px">
+    <div class="card-header"><div class="card-icon">⬆️</div>
+      <div><div class="card-title">Scale Up Your Business</div>
+      <div class="card-sub">Reset for a permanent earnings multiplier</div></div>
+    </div>
+    <div class="card-body">Restart from scratch with a ×${(1.5*(G.prestigeCount+1)).toFixed(1)} permanent earnings multiplier. All printers, upgrades and products reset — but you keep your multiplier.</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div><div class="lbl">Lifetime Required</div><div class="val-big" style="color:var(--purple)">$${fmtNum(nextReq)}</div></div>
+      <div><div class="lbl">Your Lifetime</div><div class="val-big" style="color:var(--gold)">$${fmtNum(G.lifetimeEarned)}</div></div>
+      <button class="btn btn-sm" style="background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.3);color:var(--purple)" onclick="tryPrestige()" ${G.lifetimeEarned<nextReq?'disabled':''}>SCALE UP ⬆️</button>
+    </div>
+  </div>`;
+
+  wrap.innerHTML = html;
+}
+
+function renderAutomation() {
+  const wrap = el('automation-content');
+  const tiers = { 1:'🔧 TIER 1 — BASICS', 2:'⚙️ TIER 2 — ADVANCED', 3:'🤖 TIER 3 — ENTERPRISE' };
+  let html = '';
+  for (const [tierNum, tierLabel] of Object.entries(tiers)) {
+    html += `<div class="cat-header"><div class="cat-label">${tierLabel}</div><div class="cat-line"></div></div><div class="grid-2">`;
+    for (const [aid, a] of Object.entries(AUTOMATION_ITEMS)) {
+      if (a.tier !== Number(tierNum)) continue;
+      const owned = !!G.automationOwned[aid];
+      const active = !!G.automationActive[aid];
+      const reqOk = !a.req || G.upgrades[a.req];
+      html += `<div class="auto-card ${owned && active ? 'active' : ''}">
+        <div class="auto-header">
+          <div class="auto-icon">${a.icon}</div>
+          <div>
+            <div class="auto-title">${a.name}</div>
+            <div class="auto-tier">Tier ${a.tier}</div>
+          </div>
+        </div>
+        <div class="auto-desc">${a.desc}</div>
+        <div class="toggle-row">
+          ${owned
+            ? `<label class="toggle"><input type="checkbox" ${active?'checked':''} onchange="toggleAutomation('${aid}')"><span class="toggle-slider"></span></label>
+               <span style="font-family:var(--font-mono);font-size:11px;color:${active?'var(--accent2)':'var(--text3)'}">
+               ${active ? 'RUNNING' : 'PAUSED'}</span>`
+            : reqOk
+              ? `<button class="btn btn-cyan btn-sm" onclick="buyAutomation('${aid}')" ${G.money<a.cost?'disabled':''}>INSTALL — $${fmtNum(a.cost)}</button>`
+              : `<span style="font-size:11px;color:var(--text3)">Requires: ${UPGRADES[a.req]?.name || a.req}</span>`}
+        </div>
+        ${owned && aid === 'auto_filament' ? `
+        <div class="auto-settings">
+          <div class="setting-row"><span>Resupply threshold</span><span class="setting-val">600g</span></div>
+          <div class="setting-row"><span>Buy amount</span><span class="setting-val">1,000g</span></div>
+        </div>` : ''}
+        ${owned && aid === 'auto_sell' ? `
+        <div class="auto-settings">
+          <div class="setting-row"><span>Sell interval</span><span class="setting-val">30s</span></div>
+          <div class="setting-row"><span>Price opt bonus</span><span class="setting-val">${G.automationOwned.price_opt ? '+22%' : 'none'}</span></div>
+        </div>` : ''}
+      </div>`;
+    }
+    html += '</div>';
+  }
+  wrap.innerHTML = html;
+}
+
+function renderStats() {
+  const wrap = el('stats-content');
+  const uptime = fmtPlaytime(G.playTime);
+  const phase_desc = {
+    HOBBYIST:'Learning the ropes. Keep printing!',
+    MAKER:'Building momentum. Automate and expand.',
+    BUSINESS:'Running a real operation. Scale up!',
+    FARM:'Print farm mode. Dominating the market.',
+    EMPIRE:'Manufacturing empire. You made it!',
+  };
+  let html = `<div class="stats-grid">
+    <div class="stat-card"><div class="stat-card-lbl">Lifetime Earned</div><div class="stat-card-val" style="color:var(--gold)">$${fmtNum(G.lifetimeEarned)}</div></div>
+    <div class="stat-card"><div class="stat-card-lbl">Current Balance</div><div class="stat-card-val" style="color:var(--green)">$${fmtNum(G.money)}</div></div>
+    <div class="stat-card"><div class="stat-card-lbl">Total Prints</div><div class="stat-card-val">${G.totalPrints.toLocaleString()}</div></div>
+    <div class="stat-card"><div class="stat-card-lbl">Filament Used</div><div class="stat-card-val" style="color:var(--accent2)">${fmtG(G.totalFilamentUsed)}</div></div>
+    <div class="stat-card"><div class="stat-card-lbl">Printers Owned</div><div class="stat-card-val">${G.printers.length}</div></div>
+    <div class="stat-card"><div class="stat-card-lbl">Upgrades Bought</div><div class="stat-card-val">${Object.keys(G.upgrades).length} / ${Object.keys(UPGRADES).length}</div></div>
+    <div class="stat-card"><div class="stat-card-lbl">Play Time</div><div class="stat-card-val" style="font-size:15px">${uptime}</div></div>
+    <div class="stat-card"><div class="stat-card-lbl">Scale Ups</div><div class="stat-card-val" style="color:var(--purple)">${G.prestigeCount}</div></div>
+  </div>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:20px">
+    <div style="font-family:var(--font-title);font-size:12px;color:var(--text2);letter-spacing:.1em;margin-bottom:8px">BUSINESS PHASE</div>
+    <div style="font-size:22px;font-weight:700;color:var(--accent);font-family:var(--font-ui);margin-bottom:4px">${G.phase}</div>
+    <div style="font-size:13px;color:var(--text2)">${phase_desc[G.phase] || ''}</div>
+    ${G.prestigeMult > 1 ? `<div style="margin-top:8px;font-family:var(--font-mono);font-size:12px;color:var(--purple)">⬆️ Scale Up ×${G.prestigeMult.toFixed(1)} active</div>` : ''}
+  </div>
+  <div class="section-hdr"><h2>ACHIEVEMENTS (${G.achievements.length} / ${ACHIEVEMENTS.length})</h2><div class="hdr-line"></div></div>
+  <div class="achievement-grid">`;
+  for (const ach of ACHIEVEMENTS) {
+    const done = G.achievements.includes(ach.id);
+    html += `<div class="achievement ${done?'unlocked':'locked'}">
+      <div class="ach-icon">${ach.icon}</div>
+      <div><div class="ach-name">${ach.name}</div><div class="ach-desc">${ach.desc}</div></div>
+    </div>`;
+  }
+  html += '</div>';
+  wrap.innerHTML = html;
+}
+
+// ========================
+// SAVE / LOAD
+// ========================
+function saveGame(silent) {
+  try {
+    const data = JSON.stringify(G);
+    localStorage.setItem('3dp_tycoon_save', data);
+    if (!silent) toast('💾 Game saved!', 'success');
+  } catch(e) {
+    toast('⚠️ Save failed! ' + e.message, 'error');
+  }
+}
+
+function loadGame() {
+  try {
+    const data = localStorage.getItem('3dp_tycoon_save');
+    if (!data) return false;
+    const saved = JSON.parse(data);
+    G = saved;
+    G.incomeRate = 0;
+    G.incomeSamples = [];
+    // Migrate printerId
+    printerId = Math.max(...G.printers.map(p=>p.id), 0);
+    return true;
+  } catch(e) {
+    console.error('Load failed', e);
+    return false;
+  }
+}
+
+function loadGameFromSplash() {
+  if (loadGame()) {
+    document.getElementById('splash').classList.add('hidden');
+    startLoop();
+    render();
+    toast('📂 Game loaded!', 'success');
+  } else {
+    toast('No save found!', 'error');
+  }
+}
+
+function resetConfirm() {
+  if (confirm('⚠️ RESET GAME?\n\nThis deletes ALL progress. This cannot be undone.\n\nHold SHIFT and click OK to confirm.')) {
+    if (confirm('Are you absolutely sure? All your printers, money, and upgrades will be lost!')) {
+      localStorage.removeItem('3dp_tycoon_save');
+      location.reload();
+    }
+  }
+}
+
+function exportSave() {
+  const data = JSON.stringify(G);
+  const b64 = btoa(data);
+  const el = document.createElement('textarea');
+  el.value = b64;
+  document.body.appendChild(el);
+  el.select();
+  document.execCommand('copy');
+  document.body.removeChild(el);
+  toast('📋 Save exported to clipboard (base64)', 'info');
+}
+
+function importSave(b64) {
+  try {
+    const data = JSON.parse(atob(b64));
+    G = data;
+    printerId = Math.max(...G.printers.map(p=>p.id), 0);
+    toast('📂 Save imported!', 'success');
+    return true;
+  } catch(e) {
+    toast('❌ Import failed: ' + e.message, 'error');
+    return false;
+  }
+}
+
+// ========================
+// DEBUG CONSOLE
+// ========================
+const DEBUG_CODES = {
+  'FILLAMENT':  ()=>{ G.filament += 10000; dbLog('Added 10kg filament', 'ok') },
+  'MONEYBAGS':  ()=>{ G.money += 10000; dbLog('Added $10,000', 'ok') },
+  'FATSTACK':   ()=>{ G.money += 1000000; G.lifetimeEarned += 1000000; dbLog('Added $1,000,000', 'ok') },
+  'SPEEDRUN':   ()=>{ G.speedMult *= 5; setTimeout(()=>{ G.speedMult /= 5 }, 60000); dbLog('5× speed for 60s!', 'ok') },
+  'UNLOCKALL':  ()=>{ G.unlockedProducts = Object.keys(PRODUCTS); dbLog('All products unlocked!', 'ok') },
+  'RESEARCHALL':()=>{ Object.entries(UPGRADES).forEach(([id,u])=>{ if(!G.upgrades[id]){ G.upgrades[id]=true; u.fn(G); } }); dbLog('All upgrades applied!', 'ok') },
+  'AUTOALL':    ()=>{ Object.keys(AUTOMATION_ITEMS).forEach(id=>{ G.automationOwned[id]=true; G.automationActive[id]=true; }); G.unlockedAutoSell=true; G.bulkOrdersEnabled=true; dbLog('All automation unlocked!', 'ok') },
+  'GODMODE':    ()=>{ G.money+=999999; G.filament+=99999; G.speedMult*=10; Object.entries(UPGRADES).forEach(([id,u])=>{ if(!G.upgrades[id]){ G.upgrades[id]=true; u.fn(G); } }); G.unlockedProducts=Object.keys(PRODUCTS); Object.keys(AUTOMATION_ITEMS).forEach(id=>{ G.automationOwned[id]=true; G.automationActive[id]=true; }); dbLog('GOD MODE ENABLED 🔥', 'ok') },
+  'PRINTFARM':  ()=>{ ['ender3','bambu_a1','bambu_x1c'].forEach(t=>{ if(G.printers.length<12) buyPrinter(t) }); dbLog('Print farm spawned!', 'ok') },
+  'PHASE5':     ()=>{ G.lifetimeEarned = 2000000; dbLog('Phase set to EMPIRE', 'ok') },
+  'PRESTIGE1':  ()=>{ G.prestigeMult = 1.5; G.prestigeCount = 1; dbLog('Prestige 1 applied', 'ok') },
+  'CLEARINV':   ()=>{ G.inventory = {}; dbLog('Inventory cleared', 'ok') },
+  'VERSION':    ()=>dbLog('3DP Tycoon v' + VERSION, 'info'),
+  'HELP':       ()=>dbLog('Codes: FILLAMENT MONEYBAGS FATSTACK SPEEDRUN UNLOCKALL RESEARCHALL AUTOALL GODMODE PRINTFARM PHASE5 PRESTIGE1 CLEARINV', 'info'),
+};
+
+function toggleDebug() {
+  const d = document.getElementById('debug');
+  d.classList.toggle('open');
+  if (d.classList.contains('open')) document.getElementById('debug-input').focus();
+}
+
+function execDebug() {
+  const input = document.getElementById('debug-input');
+  const code = input.value.trim().toUpperCase();
+  input.value = '';
+  if (!code) return;
+  dbLog('> ' + code, 'info');
+  if (DEBUG_CODES[code]) {
+    DEBUG_CODES[code]();
+  } else {
+    dbLog('Unknown code. Try HELP', 'err');
+  }
+}
+
+function dbLog(msg, type) {
+  const log = document.getElementById('debug-log');
+  const line = document.createElement('div');
+  line.className = 'debug-line ' + (type || '');
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
+
+// ========================
+// UI HELPERS
+// ========================
+function switchTab(name) {
+  activeTab = name;
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const panel = document.getElementById('tab-' + name);
+  const btn = document.getElementById('tab-btn-' + name);
+  if (panel) panel.classList.add('active');
+  if (btn) btn.classList.add('active');
+  render();
+}
+
+function el(id) { return document.getElementById(id); }
+
+function toast(msg, type, duration) {
+  const container = document.getElementById('toasts');
+  const t = document.createElement('div');
+  t.className = 'toast ' + (type||'');
+  t.textContent = msg;
+  container.appendChild(t);
+  setTimeout(() => {
+    t.style.animation = 'toast-out .3s ease forwards';
+    setTimeout(() => t.remove(), 300);
+  }, duration || 3000);
+}
+
+function spawnFloat(text, event) {
+  const floats = document.getElementById('floats');
+  const el = document.createElement('div');
+  el.className = 'float-num';
+  const x = event ? (event.clientX || window.innerWidth/2) : window.innerWidth/2;
+  const y = event ? (event.clientY || window.innerHeight/2) : window.innerHeight/2;
+  el.style.left = (x + Math.random()*40-20) + 'px';
+  el.style.top = (y - 10) + 'px';
+  el.textContent = text;
+  floats.appendChild(el);
+  setTimeout(() => el.remove(), 1500);
+}
+
+// ========================
+// FORMAT HELPERS
+// ========================
+function fmtNum(n) {
+  if (n >= 1e9) return (n/1e9).toFixed(2) + 'B';
+  if (n >= 1e6) return (n/1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+  return n.toFixed(2);
+}
+
+function fmtG(g) {
+  if (g >= 1000) return (g/1000).toFixed(2) + 'kg';
+  return Math.round(g) + 'g';
+}
+
+function fmtTime(secs) {
+  if (secs < 60) return secs + 's';
+  return Math.floor(secs/60) + 'm ' + (secs%60) + 's';
+}
+
+function fmtPlaytime(s) {
+  const h = Math.floor(s/3600);
+  const m = Math.floor((s%3600)/60);
+  const sec = Math.floor(s%60);
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m ${sec}s`;
+}
+
+// ========================
+// INIT
+// ========================
+function startGame() {
+  const nameInput = document.getElementById('shop-name-input');
+  const shopName = nameInput.value.trim() || 'MY PRINT SHOP';
+  G = defaultState(shopName.toUpperCase());
+  document.getElementById('splash').classList.add('hidden');
+  setTimeout(() => document.getElementById('splash').remove(), 700);
+  startLoop();
+  toast('🖨️ Welcome to 3DP Tycoon! Start printing to earn money.', 'info', 5000);
+  saveGame(true);
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.key === '`') {
+    e.preventDefault();
+    toggleDebug();
+  }
+  // Don't intercept when typing in inputs
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === '1') switchTab('printers');
+  if (e.key === '2') switchTab('products');
+  if (e.key === '3') switchTab('upgrades');
+  if (e.key === '4') switchTab('automation');
+  if (e.key === '5') switchTab('stats');
+  if (e.key === 's' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); saveGame(); }
+});
+
+// Auto-save on page hide
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && G) saveGame(true);
+});
+
+window.addEventListener('beforeunload', () => {
+  if (G) saveGame(true);
+});
+
+// Check for existing save on load
+window.addEventListener('load', () => {
+  const hasSave = !!localStorage.getItem('3dp_tycoon_save');
+  if (hasSave) {
+    const loadBtn = document.querySelector('.splash-load');
+    loadBtn.textContent = '📂 Continue Saved Game';
+    loadBtn.style.borderColor = 'var(--green)';
+    loadBtn.style.color = 'var(--green)';
+  }
+});
+</script>
+</body>
+</html>

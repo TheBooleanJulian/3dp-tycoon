@@ -1,0 +1,10 @@
+{
+  "name": "3dp-tycoon",
+  "version": "1.1.0",
+  "description": "3DP Tycoon — idle incremental 3D printing business simulator",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {}
+}
