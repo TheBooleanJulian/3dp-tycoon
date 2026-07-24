@@ -1,10 +1,23 @@
+<div align="center">
+
 # 🖨️ 3DP Tycoon
 
 **Build your 3D printing empire from a single bedroom printer.**
 
 An idle incremental business simulator where you grow a home-based 3D printing operation into a full manufacturing empire.
 
+![Version](https://img.shields.io/badge/version-1.3.0-00D4C8)
+![JavaScript](https://img.shields.io/badge/-JavaScript-F7DF1E?logo=javascript&logoColor=black)
+![Node.js](https://img.shields.io/badge/-Node.js-339933?logo=node.js&logoColor=white)
+![License](https://img.shields.io/badge/license-AGPLv3%20%2B%20Commercial-00D4C8.svg)
+
+</div>
+
 ---
+
+## What it does
+
+3DP Tycoon is a browser-based idle incremental game where you start with a single free printer in a cramped bedroom and scale up to a full manufacturing empire. You manage filament stock, research upgrades, automate printing and selling, hire staff, post marketing content, and eventually prestige for permanent multipliers. It's a single-file HTML/JS game served via a minimal Node.js static server — no build step, no database, just open and play.
 
 ## 🎮 How to Play
 
@@ -19,6 +32,19 @@ An idle incremental business simulator where you grow a home-based 3D printing o
 9. **Market** — Post timelapse clips or attend exhibitions for followers, value boosts, and a shot at going viral
 10. **Staff up** — Hire workers (wages) or buy robot arms (one-time cost) to automate finishing and marketing
 11. **Scale Up** — Prestige for a permanent earnings multiplier
+
+## Features
+
+- **10 distinct printers** spanning free starter clones to $120k metal SLS machines, each with unique speed, quality, cost, and fail-rate tradeoffs
+- **20 product tiers** from cheap novelties to aerospace components, with premium products locked behind progression
+- **Workshop space system** — start with 1 printer slot, expand via shelving upgrades then rent offices, warehouses, and mega factories with ongoing rent costs
+- **Finishing Studio** — post-processing (sanding, smoothing, painting) unlocked by research for full product value
+- **Marketing system** — post timelapse clips or attend randomly triggered exhibitions (Maker Faire → International Expo) to gain followers, value boosts, and viral chances
+- **Workforce** — hire human workers (wages) or buy robot arms (one-time cost) to automate finishing and marketing
+- **Full automation** — unlock auto-print, auto-sell, and filament resupply so the operation runs hands-off
+- **Achievements** — unlock tracking across prints, earnings, followers, and more
+- **Prestige** — reset for a permanent earnings multiplier and replay with a head start
+- **Save export/import** — clipboard-based base64 save codes alongside `localStorage` auto-save
 
 ---
 
@@ -135,6 +161,32 @@ Open the debug console with `` ` `` and enter:
 
 ---
 
+## Tech Stack
+
+| Layer | Choice |
+|---|---|
+| Frontend | Single-file HTML + JavaScript |
+| Server | Node.js (static file server) |
+
+## Quick Start
+
+```bash
+git clone https://github.com/TheBooleanJulian/3dp-tycoon
+cd 3dp-tycoon
+node server.js
+```
+
+Then open `http://localhost:3000` (or whichever port `server.js` binds) in your browser.
+
+## Project Structure
+
+```
+3dp-tycoon/
+|-- index.html       # Entire game — UI, logic, state
+|-- server.js        # Minimal static file server
+`-- package.json
+```
+
 ## 🚀 Deployment
 
 ### GitHub Pages
@@ -154,6 +206,7 @@ Push to GitHub and enable Pages for the `main` branch.
 - **Auto-saves** on tab close / page hide
 - Manual save with `Ctrl+S` or the 💾 button
 - Save data stored in `localStorage`
+- Export/import a portable base64 save code from the debug console
 
 ---
 
@@ -198,7 +251,20 @@ Versioning follows `MAJOR.MINOR.PATCH`: **major** bumps for breaking/structural 
 - **Statistics dashboard** — lifetime totals, per-product profit graphs, printtime breakdown
 - **Themes/skins** — alternate UI palettes or a light mode
 - **Mod/community recipes** — JSON-defined custom products or printers for self-hosters
+- **Test coverage** — no automated tests currently exist for the game logic
+- **`.env` configuration** — no runtime settings are configurable yet (e.g. server port is hardcoded with an env override)
 
 ---
 
-Made with ❤️ and molten filament.
+## License
+
+This project is dual licensed.
+
+- **Community Edition** — [GNU Affero General Public License v3 (AGPLv3)](https://github.com/TheBooleanJulian/thebooleanjulian.github.io/blob/main/LICENSE). Free to use, modify, and self-host. If you distribute a modified version or run it as a network service, you must make the corresponding source available.
+- **Commercial License** — for organisations that want to embed, modify, or distribute this software without AGPLv3's obligations. See [COMMERCIAL-LICENSE.md](https://github.com/TheBooleanJulian/thebooleanjulian.github.io/blob/main/COMMERCIAL-LICENSE.md).
+
+---
+
+<div align="center">
+<sub>Built by <a href="https://github.com/TheBooleanJulian">@TheBooleanJulian</a> · Made with ❤️ and molten filament.</sub>
+</div>
