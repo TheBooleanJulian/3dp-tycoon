@@ -237,7 +237,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .fil-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .fil-title{font-size:16px;font-weight:700;color:var(--text)}
 .fil-stock{font-family:var(--font-mono);font-size:14px;color:var(--accent2)}
-.fil-buttons{display:flex;gap:8px;flex-wrap:wrap}
+.fil-buttons{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
 
 /* ===== NOTIFICATIONS ===== */
 #toasts{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
@@ -279,7 +279,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .modal-btns{display:flex;gap:10px;justify-content:center}
 
 /* ===== INTRO SPLASH ===== */
-#splash{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .6s}
+#splash{position:fixed;inset:0;z-index:999;background:linear-gradient(rgba(9,9,11,.55),rgba(9,9,11,.85)),url('assets/hero.png') center/cover no-repeat;background-color:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .6s}
 #splash.hidden{opacity:0;pointer-events:none}
 .splash-title{font-family:var(--font-title);font-size:36px;font-weight:900;color:var(--text);letter-spacing:.05em;text-align:center}
 .splash-title span{color:var(--accent)}
@@ -292,6 +292,12 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .splash-load:hover{border-color:var(--accent2);color:var(--accent2)}
 .splash-logo{font-size:56px;animation:logo-spin 8s linear infinite}
 @keyframes logo-spin{0%,100%{transform:rotate(0deg)}50%{transform:rotate(360deg)}}
+.splash-loading{display:flex;flex-direction:column;align-items:center;gap:10px;width:280px}
+.splash-loading-track{width:100%;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.splash-loading-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:3px;transition:width .1s linear}
+.splash-loading-label{font-family:var(--font-mono);font-size:11px;color:var(--text2);letter-spacing:.1em}
+.splash-ready{display:flex;flex-direction:column;align-items:center;gap:20px;opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .5s ease,transform .5s ease}
+.splash-ready.shown{opacity:1;transform:translateY(0);pointer-events:auto}
 
 /* ===== PRESTIGE ===== */
 .prestige-banner{background:linear-gradient(90deg,rgba(167,139,250,.1),rgba(255,107,43,.1));border:1px solid rgba(167,139,250,.3);border-radius:8px;padding:16px;margin-bottom:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
@@ -319,10 +325,20 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   <div class="splash-logo">🖨️</div>
   <div class="splash-title"><span>3DP</span> TYCOON</div>
   <div class="splash-sub">Build your 3D printing empire from a single bedroom printer</div>
-  <input class="splash-input" id="shop-name-input" placeholder="Name your print shop..." maxlength="28">
-  <button class="splash-btn" onclick="startGame()">START PRINTING</button>
-  <button class="splash-load" onclick="loadGameFromSplash()">📂 Load Saved Game</button>
-  <div class="tip">Press ` (backtick) to open debug console</div>
+
+  <div class="splash-loading" id="splash-loading">
+    <div class="splash-loading-track"><div class="splash-loading-fill" id="splash-loading-fill"></div></div>
+    <div class="splash-loading-label" id="splash-loading-label">WARMING UP THE EXTRUDER... 0%</div>
+  </div>
+
+  <div class="splash-ready" id="splash-ready">
+    <input class="splash-input" id="shop-name-input" placeholder="Name your print shop..." maxlength="28">
+    <button class="splash-btn" onclick="startGame()">START PRINTING</button>
+    <button class="splash-load" onclick="loadGameFromSplash()">📂 Load Saved Game</button>
+    <button class="splash-load" onclick="importSaveFromPrompt()">⬇ Import Save Code</button>
+    <div class="tip">💾 Saves are stored locally in this browser only — no cloud sync. A different browser, device, or private/incognito window won't see this save. Use EXPORT (once in-game) to back up or move a save.</div>
+    <div class="tip">Press ` (backtick) to open debug console</div>
+  </div>
 </div>
 
 <!-- HUD -->
@@ -357,7 +373,9 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   </div>
   <div class="hud-right">
     <button class="btn-hud" onclick="openBulkFilament()">+ FILAMENT</button>
-    <button class="btn-hud" onclick="saveGame()">💾 SAVE</button>
+    <button class="btn-hud" onclick="saveGame()" title="Saved locally in this browser only — no cloud sync. Use EXPORT/IMPORT to back up or move your save.">💾 SAVE</button>
+    <button class="btn-hud" onclick="exportSave()" title="Copy a portable save code to your clipboard — your only backup, since saves don't sync to any server">⬆ EXPORT</button>
+    <button class="btn-hud" onclick="importSaveFromPrompt()" title="Paste a save code to restore or transfer a save">⬇ IMPORT</button>
     <button class="btn-hud" onclick="resetConfirm()">⚙</button>
   </div>
 </header>
@@ -474,7 +492,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 // ========================
 // GAME DATA
 // ========================
-const VERSION = '1.3.0';
+const VERSION = '1.4.1';
 
 const PRODUCTS = {
   keychain:        { id:'keychain',        name:'Keychains',           icon:'🔑', color:'#4a9eff', baseValue:2.50,  filament:15,  printTime:8,   unlockCost:0,     desc:'Popular and quick to print' },
@@ -499,19 +517,45 @@ const PRODUCTS = {
   aerospace_component:{ id:'aerospace_component', name:'Aerospace Component', icon:'🚀', color:'#5d6d7e', baseValue:450.0, filament:1100,printTime:650, unlockCost:60000, desc:'The pinnacle of precision manufacturing' },
 };
 
+// costMult: multiplies base filament price/gram · qualityMult: product value multiplier
+// failMod: multiplier on base fail rate (<1 = more reliable, >1 = flakier) · matClass: 'filament' or 'resin'
+const MATERIALS = {
+  pla:          { id:'pla',          name:'PLA',                    icon:'🧵', matClass:'filament', costMult:1.0, qualityMult:1.0,  failMod:1.0,  desc:'Standard, reliable, cheap.' },
+  petg:         { id:'petg',         name:'PETG',                   icon:'🧵', matClass:'filament', costMult:1.3, qualityMult:1.08, failMod:0.9,  desc:'Tougher and weather-resistant.' },
+  abs:          { id:'abs',          name:'ABS',                    icon:'🧵', matClass:'filament', costMult:1.15,qualityMult:1.03, failMod:1.15, desc:'Heat-resistant but warps more.' },
+  tpu:          { id:'tpu',          name:'TPU (Flexible)',         icon:'🧵', matClass:'filament', costMult:1.8, qualityMult:1.12, failMod:1.25, desc:'Flexible, trickier to print.' },
+  nylon:        { id:'nylon',        name:'Nylon',                  icon:'🧵', matClass:'filament', costMult:2.2, qualityMult:1.2,  failMod:1.2,  desc:'Strong engineering material, absorbs moisture.' },
+  carbon_fiber: { id:'carbon_fiber', name:'Carbon Fiber Composite', icon:'🧵', matClass:'filament', costMult:3.0, qualityMult:1.35, failMod:1.1,  desc:'Premium strength-to-weight composite.' },
+  resin_std:    { id:'resin_std',    name:'Standard Resin',         icon:'💧', matClass:'resin',    costMult:2.5, qualityMult:1.15, failMod:1.0,  desc:'Standard resin for detailed prints.' },
+  resin_tough:  { id:'resin_tough',  name:'Tough Resin',            icon:'💧', matClass:'resin',    costMult:3.5, qualityMult:1.3,  failMod:0.9,  desc:'Engineering-grade tough resin.' },
+};
+
+// Cosmetic choice — bonus is a small fleet-averaged value multiplier, same mechanism as fleet quality
+const COLORS = {
+  black:  { id:'black',  name:'Black',  icon:'⚫', bonus:1.00 },
+  white:  { id:'white',  name:'White',  icon:'⚪', bonus:1.00 },
+  brown:  { id:'brown',  name:'Brown',  icon:'🟤', bonus:0.98 },
+  red:    { id:'red',    name:'Red',    icon:'🔴', bonus:1.02 },
+  orange: { id:'orange', name:'Orange', icon:'🟠', bonus:1.03 },
+  yellow: { id:'yellow', name:'Yellow', icon:'🟡', bonus:1.01 },
+  green:  { id:'green',  name:'Green',  icon:'🟢', bonus:1.01 },
+  blue:   { id:'blue',   name:'Blue',   icon:'🔵', bonus:1.02 },
+  purple: { id:'purple', name:'Purple', icon:'🟣', bonus:1.05 },
+};
+
 // speed: relative print rate · eff: filament efficiency (>1 = less waste) · quality: product value multiplier
-// failMod: multiplier on base fail rate (<1 = more reliable, >1 = flakier)
+// failMod: multiplier on base fail rate (<1 = more reliable, >1 = flakier) · matClass: which materials it can load
 const PRINTER_TYPES = {
-  ender3:      { id:'ender3',      name:'Bender 3 Clone',          icon:'🖨️', color:'#6b6880', cost:0,      speed:1.0,  eff:1.0,  quality:1.0,  failMod:1.0,  maxOwn:4, desc:'Your trusty starter. Slow but reliable.' },
-  budget_resin:{ id:'budget_resin',name:'PrintPal Mini (Resin)',  icon:'🧪', color:'#c39bd3', cost:150,    speed:1.3,  eff:0.7,  quality:0.9,  failMod:1.4,  maxOwn:4, desc:'Cheap resin entry point. Wasteful and finicky.' },
-  bambu_a1:    { id:'bambu_a1',    name:'Mambo Lab A1',           icon:'🔥', color:'#ff6b2b', cost:800,    speed:2.5,  eff:1.1,  quality:1.05, failMod:0.9,  maxOwn:6, desc:'Fast CoreXY all-rounder. A real game changer.' },
-  resin:       { id:'resin',      name:'Proton Mono M5S',        icon:'💎', color:'#a78bfa', cost:2200,   speed:3.5,  eff:0.85, quality:1.15, failMod:1.0,  maxOwn:4, desc:'Ultra-detail resin. +60% miniature value.', bonusProd:'miniature', bonusMult:1.6 },
-  bambu_x1c:   { id:'bambu_x1c',  name:'Mambo X1 Carbon',        icon:'⚡', color:'#00d4c8', cost:3500,   speed:5.0,  eff:1.25, quality:1.1,  failMod:0.85, maxOwn:6, desc:'Multi-color, blazing fast. Industry standard.' },
-  voron:       { id:'voron',      name:'Boron 2.4 350',          icon:'🚀', color:'#e74c3c', cost:9500,   speed:9.0,  eff:1.4,  quality:0.95, failMod:1.3,  maxOwn:4, desc:'DIY beast. Extreme speed, but tuning is temperamental.' },
-  farm_unit:   { id:'farm_unit',  name:'Gantry X9 Farm Unit',    icon:'📐', color:'#48c9b0', cost:18000,  speed:14.0, eff:1.5,  quality:0.85, failMod:1.1,  maxOwn:6, desc:'Built for volume, not finish. Cheaper than Industrial.' },
-  industrial:  { id:'industrial', name:'Industrial FDM',         icon:'🏭', color:'#f39c12', cost:55000,  speed:18.0, eff:1.65, quality:1.2,  failMod:0.6,  maxOwn:3, desc:'Commercial-grade. Handles bulk orders reliably.' },
-  cnc_precision:{ id:'cnc_precision',name:'Helix CNC Precision Mill',icon:'🛠️', color:'#7fb3d5', cost:30000, speed:2.0, eff:1.0, quality:1.5, failMod:0.4, maxOwn:2, desc:'Slow subtractive precision. Superb finish quality.' },
-  titan_sls:   { id:'titan_sls',  name:'Titan SLS Metal Printer',icon:'🗲', color:'#5d6d7e', cost:120000, speed:4.0,  eff:1.3,  quality:1.8,  failMod:0.3,  maxOwn:2, desc:'Best-in-class metal sintering. Slow, pricey, unmatched value.' },
+  ender3:      { id:'ender3',      name:'Bender 3 Clone',          icon:'🖨️', color:'#6b6880', cost:0,      speed:1.0,  eff:1.0,  quality:1.0,  failMod:1.0,  maxOwn:4, matClass:'filament', desc:'Your trusty starter. Slow but reliable.' },
+  budget_resin:{ id:'budget_resin',name:'PrintPal Mini (Resin)',  icon:'🧪', color:'#c39bd3', cost:150,    speed:1.3,  eff:0.7,  quality:0.9,  failMod:1.4,  maxOwn:4, matClass:'resin',    desc:'Cheap resin entry point. Wasteful and finicky.' },
+  bambu_a1:    { id:'bambu_a1',    name:'Mambo Lab A1',           icon:'🔥', color:'#ff6b2b', cost:800,    speed:2.5,  eff:1.1,  quality:1.05, failMod:0.9,  maxOwn:6, matClass:'filament', desc:'Fast CoreXY all-rounder. A real game changer.' },
+  resin:       { id:'resin',      name:'Proton Mono M5S',        icon:'💎', color:'#a78bfa', cost:2200,   speed:3.5,  eff:0.85, quality:1.15, failMod:1.0,  maxOwn:4, matClass:'resin',    desc:'Ultra-detail resin. +60% miniature value.', bonusProd:'miniature', bonusMult:1.6 },
+  bambu_x1c:   { id:'bambu_x1c',  name:'Mambo X1 Carbon',        icon:'⚡', color:'#00d4c8', cost:3500,   speed:5.0,  eff:1.25, quality:1.1,  failMod:0.85, maxOwn:6, matClass:'filament', desc:'Multi-color, blazing fast. Industry standard.' },
+  voron:       { id:'voron',      name:'Boron 2.4 350',          icon:'🚀', color:'#e74c3c', cost:9500,   speed:9.0,  eff:1.4,  quality:0.95, failMod:1.3,  maxOwn:4, matClass:'filament', desc:'DIY beast. Extreme speed, but tuning is temperamental.' },
+  farm_unit:   { id:'farm_unit',  name:'Gantry X9 Farm Unit',    icon:'📐', color:'#48c9b0', cost:18000,  speed:14.0, eff:1.5,  quality:0.85, failMod:1.1,  maxOwn:6, matClass:'filament', desc:'Built for volume, not finish. Cheaper than Industrial.' },
+  industrial:  { id:'industrial', name:'Industrial FDM',         icon:'🏭', color:'#f39c12', cost:55000,  speed:18.0, eff:1.65, quality:1.2,  failMod:0.6,  maxOwn:3, matClass:'filament', desc:'Commercial-grade. Handles bulk orders reliably.' },
+  cnc_precision:{ id:'cnc_precision',name:'Helix CNC Precision Mill',icon:'🛠️', color:'#7fb3d5', cost:30000, speed:2.0, eff:1.0, quality:1.5, failMod:0.4, maxOwn:2, matClass:'filament', desc:'Slow subtractive precision. Superb finish quality.' },
+  titan_sls:   { id:'titan_sls',  name:'Titan SLS Metal Printer',icon:'🗲', color:'#5d6d7e', cost:120000, speed:4.0,  eff:1.3,  quality:1.8,  failMod:0.3,  maxOwn:2, matClass:'filament', desc:'Best-in-class metal sintering. Slow, pricey, unmatched value.' },
 };
 
 const UPGRADES = {
@@ -606,15 +650,23 @@ let G = null;
 let printerId = 0;
 let stationId = 0;
 
+function freshFilamentStock() {
+  const s = {};
+  for (const id of Object.keys(MATERIALS)) s[id] = 0;
+  return s;
+}
+
 function defaultState(shopName) {
+  const startStock = freshFilamentStock();
+  startStock.pla = 500;
   return {
     version: VERSION,
     shopName: shopName || 'MY PRINT SHOP',
     money: 50,
-    filament: 500,
+    filamentStock: startStock,
     inventory: {},
     rawInventory: {},
-    printers: [{ id: ++printerId, typeId:'ender3', progress:0, printing:false, job:'keychain', totalPrints:0, active:true }],
+    printers: [{ id: ++printerId, typeId:'ender3', progress:0, printing:false, job:'keychain', material:'pla', color:'black', totalPrints:0, active:true }],
     unlockedProducts: ['keychain'],
     upgrades: {},
     automationOwned: {},
@@ -710,6 +762,18 @@ function migrateState(state) {
   if (state.exhibitionInterval === undefined) state.exhibitionInterval = 150 + Math.random() * 150;
   if (state.pendingExhibition === undefined) state.pendingExhibition = null;
   if (state.exhibitionsAttended === undefined) state.exhibitionsAttended = 0;
+  // Filament materials — old saves had a single `filament` gram count instead of per-material stock
+  if (!state.filamentStock) {
+    state.filamentStock = freshFilamentStock();
+    state.filamentStock.pla = state.filament || 0;
+  }
+  for (const p of state.printers) {
+    if (!p.material) {
+      const pt = PRINTER_TYPES[p.typeId];
+      p.material = Object.values(MATERIALS).find(m => m.matClass === pt?.matClass)?.id || 'pla';
+    }
+    if (!p.color) p.color = 'black';
+  }
 }
 
 // ========================
@@ -770,16 +834,19 @@ function tick(dt) {
     }
   }
 
-  // Auto-filament
+  // Auto-filament — resupplies whichever materials your printers are actually loaded with
   if (G.automationOwned.auto_filament && G.automationActive.auto_filament) {
     const threshold = 600;
-    if (G.filament < threshold) {
-      const qty = 1000;
-      const cost = qty * G.filamentPrice;
-      if (G.money >= cost) {
-        G.money -= cost;
-        G.filament += qty;
-        toast(`📦 Auto-resupply: +${qty}g filament`, 'info');
+    const qty = 1000;
+    const inUse = new Set(G.printers.map(p => p.material));
+    for (const matId of inUse) {
+      if ((G.filamentStock[matId] || 0) < threshold) {
+        const cost = qty * getMaterialPrice(matId);
+        if (G.money >= cost) {
+          G.money -= cost;
+          G.filamentStock[matId] += qty;
+          toast(`📦 Auto-resupply: +${qty}g ${MATERIALS[matId].name}`, 'info');
+        }
       }
     }
   }
@@ -841,8 +908,8 @@ function tryStartPrint(printer) {
   const prod = PRODUCTS[printer.job];
   if (!prod) return;
   const filCost = getFilamentCost(prod, printer.typeId);
-  if (G.filament >= filCost) {
-    G.filament -= filCost;
+  if ((G.filamentStock[printer.material] || 0) >= filCost) {
+    G.filamentStock[printer.material] -= filCost;
     G.totalFilamentUsed += filCost;
     printer.printing = true;
     printer.progress = 0;
@@ -850,9 +917,10 @@ function tryStartPrint(printer) {
 }
 
 function completePrint(printer, productId) {
-  // Failure check — printer failMod makes flakier machines fail more often
+  // Failure check — printer failMod and material failMod both make failures more/less likely
   const pTypeFail = PRINTER_TYPES[printer.typeId];
-  if (Math.random() < G.failRate * (pTypeFail?.failMod || 1)) {
+  const matFail = MATERIALS[printer.material];
+  if (Math.random() < G.failRate * (pTypeFail?.failMod || 1) * (matFail?.failMod || 1)) {
     toast(`⚠️ Print failed on ${pTypeFail.name}!`, 'warning');
     return;
   }
@@ -873,10 +941,10 @@ function manualStartPrint(printerId) {
   const prod = PRODUCTS[p.job];
   if (!prod) return;
   const filCost = getFilamentCost(prod, p.typeId);
-  if (G.filament < filCost) {
-    toast('⚠️ Not enough filament!', 'warning'); return;
+  if ((G.filamentStock[p.material] || 0) < filCost) {
+    toast(`⚠️ Not enough ${MATERIALS[p.material].name}!`, 'warning'); return;
   }
-  G.filament -= filCost;
+  G.filamentStock[p.material] -= filCost;
   G.totalFilamentUsed += filCost;
   p.printing = true;
   p.progress = 0;
@@ -892,6 +960,11 @@ function getFilamentCost(prod, printerTypeId) {
   return (prod.filament * G.filamentMult) / eff;
 }
 
+function getMaterialPrice(materialId) {
+  const mat = MATERIALS[materialId];
+  return G.filamentPrice * (mat?.costMult || 1);
+}
+
 function getProductValue(productId, printerTypeId) {
   const prod = PRODUCTS[productId];
   if (!prod) return 0;
@@ -899,6 +972,9 @@ function getProductValue(productId, printerTypeId) {
   const pType = PRINTER_TYPES[printerTypeId];
   // Fleet quality — your average printer roster's finish quality lifts (or drags) all sale prices
   v *= getFleetQualityMult();
+  // Fleet material & color — the materials/colors loaded across your printers also nudge sale value
+  v *= getFleetMaterialMult();
+  v *= getFleetColorMult();
   // Printer-specific bonuses
   if (pType && pType.bonusProd === productId) v *= pType.bonusMult;
   // Industrial bonus
@@ -942,6 +1018,26 @@ function getFleetQualityMult() {
   for (const p of G.printers) {
     const pt = PRINTER_TYPES[p.typeId];
     if (pt) { sum += pt.quality || 1; cnt++; }
+  }
+  return cnt ? sum / cnt : 1;
+}
+
+function getFleetMaterialMult() {
+  if (!G.printers.length) return 1;
+  let sum = 0, cnt = 0;
+  for (const p of G.printers) {
+    const mat = MATERIALS[p.material];
+    if (mat) { sum += mat.qualityMult || 1; cnt++; }
+  }
+  return cnt ? sum / cnt : 1;
+}
+
+function getFleetColorMult() {
+  if (!G.printers.length) return 1;
+  let sum = 0, cnt = 0;
+  for (const p of G.printers) {
+    const col = COLORS[p.color];
+    if (col) { sum += col.bonus || 1; cnt++; }
   }
   return cnt ? sum / cnt : 1;
 }
@@ -1177,8 +1273,22 @@ function buyPrinter(typeId) {
   if (G.money < pt.cost) { toast('Not enough money!', 'error'); return; }
   G.money -= pt.cost;
   const defaultJob = G.unlockedProducts[G.unlockedProducts.length - 1] || 'keychain';
-  G.printers.push({ id: ++printerId, typeId, progress:0, printing:false, job:defaultJob, totalPrints:0, active:true });
+  const defaultMaterial = Object.values(MATERIALS).find(m => m.matClass === pt.matClass)?.id || 'pla';
+  G.printers.push({ id: ++printerId, typeId, progress:0, printing:false, job:defaultJob, material:defaultMaterial, color:'black', totalPrints:0, active:true });
   toast(`🖨️ ${pt.name} added to your workshop!`, 'success');
+}
+
+function setPrinterMaterial(printerId, materialId) {
+  const p = G.printers.find(x => x.id === printerId);
+  const pt = p && PRINTER_TYPES[p.typeId];
+  const mat = MATERIALS[materialId];
+  if (!p || !mat || mat.matClass !== pt.matClass) return;
+  p.material = materialId;
+}
+
+function setPrinterColor(printerId, colorId) {
+  const p = G.printers.find(x => x.id === printerId);
+  if (p && COLORS[colorId]) p.color = colorId;
 }
 
 // ========================
@@ -1212,17 +1322,23 @@ function tickRent(dt) {
 // ========================
 // BUY FILAMENT
 // ========================
-function buyFilament(grams) {
-  const cost = grams * G.filamentPrice;
+function buyFilament(materialId, grams) {
+  const mat = MATERIALS[materialId];
+  if (!mat) return;
+  const jit = (G.automationOwned.jit_logistics && G.automationActive.jit_logistics) ? 0.72 : 1;
+  const cost = grams * getMaterialPrice(materialId) * jit;
   if (G.money < cost) { toast('Not enough money!', 'error'); return; }
   G.money -= cost;
-  G.filament += grams;
-  toast(`🧵 +${fmtG(grams)} filament`, 'info');
+  G.filamentStock[materialId] = (G.filamentStock[materialId] || 0) + grams;
+  toast(`${mat.icon} +${fmtG(grams)} ${mat.name}`, 'info');
 }
 
 function openBulkFilament() {
-  // Quick buy shortcuts
-  buyFilament(500);
+  // Quick buy shortcut — tops up whichever material your printers use most
+  const counts = {};
+  for (const p of G.printers) counts[p.material] = (counts[p.material] || 0) + 1;
+  const topMaterial = Object.keys(counts).sort((a,b) => counts[b]-counts[a])[0] || 'pla';
+  buyFilament(topMaterial, 500);
 }
 
 // ========================
@@ -1367,7 +1483,7 @@ function tryPrestige() {
   G.prestigeMult = newMult;
   G.prestigeCount = pCount;
   G.money = 500;
-  G.filament = 800;
+  G.filamentStock.pla = 800;
   toast(`⬆️ Scaled Up! ×${newMult.toFixed(1)} earnings multiplier active!`, 'success');
   saveGame(true);
 }
@@ -1388,11 +1504,15 @@ function checkAchievements() {
 // RENDER
 // ========================
 let activeTab = 'printers';
-let renderDirty = true;
+// Tab panels are fully rebuilt via innerHTML on every render — doing that on every single
+// animation frame (60/sec) constantly detaches/recreates interactive elements like the
+// ▶ PRINT button, which can silently swallow a real mouse click landing mid-rebuild.
+// Throttling structural re-renders (while the HUD still updates every frame) fixes that
+// without touching the render functions themselves.
+let lastTabRender = 0;
+const TAB_RENDER_INTERVAL = 150;
 
-function render() {
-  // HUD always updates
-  renderHUD();
+function renderActiveTab() {
   if (activeTab === 'printers') renderPrinters();
   else if (activeTab === 'products') renderProducts();
   else if (activeTab === 'upgrades') renderUpgrades();
@@ -1401,10 +1521,20 @@ function render() {
   else if (activeTab === 'stats') renderStats();
 }
 
+function render() {
+  // HUD always updates — cheap textContent writes, no element churn
+  renderHUD();
+  const now = now_t();
+  if (now - lastTabRender < TAB_RENDER_INTERVAL) return;
+  lastTabRender = now;
+  renderActiveTab();
+}
+
 function renderHUD() {
   el('hud-brand').textContent = G.shopName;
   el('hud-money').textContent = '$' + fmtNum(G.money);
-  el('hud-filament').textContent = fmtG(G.filament);
+  const totalFil = Object.values(G.filamentStock).reduce((a,b)=>a+b,0);
+  el('hud-filament').textContent = fmtG(totalFil);
   el('hud-income').textContent = '$' + fmtNum(G.incomeRate) + '/s';
   const totalInv = Object.values(G.inventory).reduce((a,b)=>a+b,0);
   el('hud-inv').textContent = totalInv + ' items';
@@ -1435,6 +1565,12 @@ function renderPrinters() {
           <select class="sel" onchange="setPrinterJob(${p.id}, this.value)">
             ${G.unlockedProducts.map(pid => `<option value="${pid}" ${p.job===pid?'selected':''}>${PRODUCTS[pid].icon} ${PRODUCTS[pid].name}</option>`).join('')}
           </select>
+          <select class="sel" onchange="setPrinterMaterial(${p.id}, this.value)" title="Material loaded">
+            ${Object.values(MATERIALS).filter(m => m.matClass === pt.matClass).map(m => `<option value="${m.id}" ${p.material===m.id?'selected':''}>${m.icon} ${m.name}</option>`).join('')}
+          </select>
+          <select class="sel" onchange="setPrinterColor(${p.id}, this.value)" title="Colour loaded">
+            ${Object.values(COLORS).map(c => `<option value="${c.id}" ${p.color===c.id?'selected':''}>${c.icon} ${c.name}</option>`).join('')}
+          </select>
           ${!isActive
             ? `<button class="btn btn-primary btn-sm" onclick="manualStartPrint(${p.id})">▶ PRINT</button>`
             : `<button class="btn btn-stop btn-sm" onclick="stopPrinter(${p.id})">■ STOP</button>`}
@@ -1445,9 +1581,10 @@ function renderPrinters() {
       const pct = Math.round(p.progress);
       const pt2 = PRINTER_TYPES[p.typeId];
       const filCost = fmtG(getFilamentCost(prod, p.typeId));
+      const matInfo = MATERIALS[p.material];
       html += `<div class="progress-wrap">
         <div class="progress-label">
-          <span>Printing ${prod.icon} ${prod.name} · ${filCost} filament → $${fmtNum(getProductValue(p.job, p.typeId))}</span>
+          <span>Printing ${prod.icon} ${prod.name} · ${filCost} ${matInfo.icon}${matInfo.name} → $${fmtNum(getProductValue(p.job, p.typeId))}</span>
           <span>${pct}%</span>
         </div>
         <div class="progress-track">
@@ -1521,17 +1658,25 @@ function renderPrinters() {
     spaceWrap.innerHTML = shtml;
   }
 
-  // Filament section
+  // Filament / material section
   const filDisplay = el('fil-stock-display');
-  filDisplay.textContent = fmtG(G.filament);
+  const totalFil = Object.values(G.filamentStock).reduce((a,b)=>a+b,0);
+  filDisplay.textContent = fmtG(totalFil);
   const filBtns = el('fil-buttons');
-  const amounts = [100, 500, 1000, 5000, 10000];
-  filBtns.innerHTML = amounts.map(g => {
-    const cost = g * G.filamentPrice;
-    const canAfford = G.money >= cost;
-    const jit = G.automationOwned.jit_logistics && G.automationActive.jit_logistics ? ' (−28%)' : '';
-    const displayCost = (G.automationOwned.jit_logistics && G.automationActive.jit_logistics) ? cost * 0.72 : cost;
-    return `<button class="btn btn-buy btn-sm" onclick="buyFilament(${g})" ${!canAfford?'disabled':''}>${fmtG(g)} — $${fmtNum(displayCost)}${jit}</button>`;
+  const amounts = [100, 500, 2000];
+  const jitActive = G.automationOwned.jit_logistics && G.automationActive.jit_logistics;
+  filBtns.innerHTML = Object.values(MATERIALS).map(mat => {
+    const stock = G.filamentStock[mat.id] || 0;
+    const buttons = amounts.map(g => {
+      const cost = g * getMaterialPrice(mat.id) * (jitActive ? 0.72 : 1);
+      const canAfford = G.money >= cost;
+      return `<button class="btn btn-buy btn-xs" onclick="buyFilament('${mat.id}',${g})" ${!canAfford?'disabled':''}>${fmtG(g)} — $${fmtNum(cost)}</button>`;
+    }).join('');
+    return `<div class="card" style="min-width:220px">
+      <div class="card-header"><span class="card-icon">${mat.icon}</span><div><div class="card-title" style="font-size:14px">${mat.name}</div><div class="card-sub">${fmtG(stock)} in stock</div></div></div>
+      <div class="card-body" style="margin-bottom:8px">${mat.desc}${jitActive ? ' (−28% JIT)' : ''}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${buttons}</div>
+    </div>`;
   }).join('');
 }
 
@@ -1949,9 +2094,12 @@ function importSave(b64) {
     const data = JSON.parse(atob(b64));
     G = data;
     migrateState(G);
+    G.incomeRate = 0;
+    G.incomeSamples = [];
     printerId = Math.max(...G.printers.map(p=>p.id), 0);
     stationId = Math.max(...G.processingStations.map(s=>s.id), 0);
     toast('📂 Save imported!', 'success');
+    lastTabRender = 0;
     return true;
   } catch(e) {
     toast('❌ Import failed: ' + e.message, 'error');
@@ -1959,18 +2107,32 @@ function importSave(b64) {
   }
 }
 
+function importSaveFromPrompt() {
+  const code = prompt('Paste your save code:');
+  if (!code) return;
+  if (!importSave(code.trim())) return;
+  const splash = document.getElementById('splash');
+  const onSplash = splash && !splash.classList.contains('hidden');
+  if (onSplash) {
+    splash.classList.add('hidden');
+    setTimeout(() => splash.remove(), 700);
+    startLoop();
+  }
+  render();
+}
+
 // ========================
 // DEBUG CONSOLE
 // ========================
 const DEBUG_CODES = {
-  'FILLAMENT':  ()=>{ G.filament += 10000; dbLog('Added 10kg filament', 'ok') },
+  'FILLAMENT':  ()=>{ Object.keys(MATERIALS).forEach(id=>{ G.filamentStock[id]+=10000; }); dbLog('Added 10kg of every material', 'ok') },
   'MONEYBAGS':  ()=>{ G.money += 10000; dbLog('Added $10,000', 'ok') },
   'FATSTACK':   ()=>{ G.money += 1000000; G.lifetimeEarned += 1000000; dbLog('Added $1,000,000', 'ok') },
   'SPEEDRUN':   ()=>{ G.speedMult *= 5; setTimeout(()=>{ G.speedMult /= 5 }, 60000); dbLog('5× speed for 60s!', 'ok') },
   'UNLOCKALL':  ()=>{ G.unlockedProducts = Object.keys(PRODUCTS); dbLog('All products unlocked!', 'ok') },
   'RESEARCHALL':()=>{ Object.entries(UPGRADES).forEach(([id,u])=>{ if(!G.upgrades[id]){ G.upgrades[id]=true; u.fn(G); } }); dbLog('All upgrades applied!', 'ok') },
   'AUTOALL':    ()=>{ Object.keys(AUTOMATION_ITEMS).forEach(id=>{ G.automationOwned[id]=true; G.automationActive[id]=true; }); G.unlockedAutoSell=true; G.bulkOrdersEnabled=true; dbLog('All automation unlocked!', 'ok') },
-  'GODMODE':    ()=>{ G.money+=999999; G.filament+=99999; G.speedMult*=10; Object.entries(UPGRADES).forEach(([id,u])=>{ if(!G.upgrades[id]){ G.upgrades[id]=true; u.fn(G); } }); G.unlockedProducts=Object.keys(PRODUCTS); Object.keys(AUTOMATION_ITEMS).forEach(id=>{ G.automationOwned[id]=true; G.automationActive[id]=true; }); G.followers+=1000; G.timelapses+=5; dbLog('GOD MODE ENABLED 🔥', 'ok') },
+  'GODMODE':    ()=>{ G.money+=999999; Object.keys(MATERIALS).forEach(id=>{ G.filamentStock[id]+=99999; }); G.speedMult*=10; Object.entries(UPGRADES).forEach(([id,u])=>{ if(!G.upgrades[id]){ G.upgrades[id]=true; u.fn(G); } }); G.unlockedProducts=Object.keys(PRODUCTS); Object.keys(AUTOMATION_ITEMS).forEach(id=>{ G.automationOwned[id]=true; G.automationActive[id]=true; }); G.followers+=1000; G.timelapses+=5; dbLog('GOD MODE ENABLED 🔥', 'ok') },
   'PRINTFARM':  ()=>{ ['ender3','bambu_a1','bambu_x1c'].forEach(t=>{ if(G.printers.length<getRoomCapacity()) buyPrinter(t) }); dbLog('Print farm spawned!', 'ok') },
   'PHASE5':     ()=>{ G.lifetimeEarned = 2000000; dbLog('Phase set to EMPIRE', 'ok') },
   'PRESTIGE1':  ()=>{ G.prestigeMult = 1.5; G.prestigeCount = 1; dbLog('Prestige 1 applied', 'ok') },
@@ -1978,8 +2140,10 @@ const DEBUG_CODES = {
   'GOVIRAL':    ()=>{ G.timelapses += 5; G.followers += 500; dbLog('Added 5 timelapse clips and 500 followers', 'ok') },
   'EXPAND':     ()=>{ Object.keys(OFFICE_SPACES).forEach(id=>{ G.rentedSpaces[id]=true; }); G.roomCapacityBonus=6; dbLog('All workshop space unlocked!', 'ok') },
   'EXPO':       ()=>{ if(!G.pendingExhibition) triggerExhibition(); dbLog('Exhibition invitation forced', 'ok') },
+  'EXPORT':     ()=>{ exportSave(); dbLog('Save code copied to clipboard', 'ok') },
+  'IMPORT':     ()=>{ importSaveFromPrompt(); },
   'VERSION':    ()=>dbLog('3DP Tycoon v' + VERSION, 'info'),
-  'HELP':       ()=>dbLog('Codes: FILLAMENT MONEYBAGS FATSTACK SPEEDRUN UNLOCKALL RESEARCHALL AUTOALL GODMODE PRINTFARM PHASE5 PRESTIGE1 CLEARINV GOVIRAL EXPAND EXPO', 'info'),
+  'HELP':       ()=>dbLog('Codes: FILLAMENT MONEYBAGS FATSTACK SPEEDRUN UNLOCKALL RESEARCHALL AUTOALL GODMODE PRINTFARM PHASE5 PRESTIGE1 CLEARINV GOVIRAL EXPAND EXPO EXPORT IMPORT', 'info'),
 };
 
 function toggleDebug() {
@@ -2021,7 +2185,9 @@ function switchTab(name) {
   const btn = document.getElementById('tab-btn-' + name);
   if (panel) panel.classList.add('active');
   if (btn) btn.classList.add('active');
-  render();
+  renderHUD();
+  renderActiveTab();
+  lastTabRender = now_t();
 }
 
 function el(id) { return document.getElementById(id); }
@@ -2128,7 +2294,38 @@ window.addEventListener('load', () => {
     loadBtn.style.borderColor = 'var(--green)';
     loadBtn.style.color = 'var(--green)';
   }
+  runBootLoadingBar();
 });
+
+// Cosmetic boot-up loading bar over the hero art — there's nothing to actually load
+// (single-file game), so this is pure polish before revealing the start form.
+const BOOT_MESSAGES = [
+  [0,   'WARMING UP THE EXTRUDER...'],
+  [30,  'LOADING FILAMENT SPOOLS...'],
+  [60,  'CALIBRATING BED...'],
+  [85,  'SLICING MODELS...'],
+];
+function runBootLoadingBar() {
+  const fill = document.getElementById('splash-loading-fill');
+  const label = document.getElementById('splash-loading-label');
+  const loading = document.getElementById('splash-loading');
+  const ready = document.getElementById('splash-ready');
+  const duration = 1200;
+  const start = performance.now();
+  function frame(now) {
+    const pct = Math.min(100, ((now - start) / duration) * 100);
+    fill.style.width = pct + '%';
+    const msg = BOOT_MESSAGES.filter(([at]) => pct >= at).pop();
+    label.textContent = `${msg[1]} ${Math.floor(pct)}%`;
+    if (pct < 100) {
+      requestAnimationFrame(frame);
+    } else {
+      loading.style.display = 'none';
+      ready.classList.add('shown');
+    }
+  }
+  requestAnimationFrame(frame);
+}
 </script>
 </body>
 </html>

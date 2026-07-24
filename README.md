@@ -4,9 +4,11 @@
 
 **Build your 3D printing empire from a single bedroom printer.**
 
+![3DP Tycoon key art](assets/hero.png)
+
 An idle incremental business simulator where you grow a home-based 3D printing operation into a full manufacturing empire.
 
-![Version](https://img.shields.io/badge/version-1.3.0-00D4C8)
+![Version](https://img.shields.io/badge/version-1.4.1-00D4C8)
 ![JavaScript](https://img.shields.io/badge/-JavaScript-F7DF1E?logo=javascript&logoColor=black)
 ![Node.js](https://img.shields.io/badge/-Node.js-339933?logo=node.js&logoColor=white)
 ![License](https://img.shields.io/badge/license-AGPLv3%20%2B%20Commercial-00D4C8.svg)
@@ -23,7 +25,7 @@ An idle incremental business simulator where you grow a home-based 3D printing o
 
 1. **Start printing** — Select a product and hit ▶ PRINT on your Bender 3
 2. **Sell products** — Go to the Products tab to sell your inventory for cash
-3. **Buy filament** — Keep your stock up or automation will idle your printers
+3. **Buy filament** — Stock up on different materials and colours, or automation will idle your printers
 4. **Upgrade** — Research speed, efficiency, quality, and business upgrades
 5. **Automate** — Unlock auto-print, auto-sell, and filament resupply
 6. **Expand** — Buy printers with different speed/quality/cost tradeoffs and unlock premium products
@@ -37,6 +39,7 @@ An idle incremental business simulator where you grow a home-based 3D printing o
 
 - **10 distinct printers** spanning free starter clones to $120k metal SLS machines, each with unique speed, quality, cost, and fail-rate tradeoffs
 - **20 product tiers** from cheap novelties to aerospace components, with premium products locked behind progression
+- **8 filament/resin materials and 9 colours** — each printer is loaded independently, with real cost/quality/reliability tradeoffs and a cosmetic colour bonus
 - **Workshop space system** — start with 1 printer slot, expand via shelving upgrades then rent offices, warehouses, and mega factories with ongoing rent costs
 - **Finishing Studio** — post-processing (sanding, smoothing, painting) unlocked by research for full product value
 - **Marketing system** — post timelapse clips or attend randomly triggered exhibitions (Maker Faire → International Expo) to gain followers, value boosts, and viral chances
@@ -45,6 +48,12 @@ An idle incremental business simulator where you grow a home-based 3D printing o
 - **Achievements** — unlock tracking across prints, earnings, followers, and more
 - **Prestige** — reset for a permanent earnings multiplier and replay with a head start
 - **Save export/import** — clipboard-based base64 save codes alongside `localStorage` auto-save
+
+## 📸 Screenshots
+
+![The Printers tab — a multi-printer workshop mid-print, each loaded with a different material and colour](assets/hero2.png)
+
+![The Studio tab — Finishing Studio stations, Raw Inventory, Workforce, and Marketing all in one view](assets/hero3.png)
 
 ---
 
@@ -68,6 +77,23 @@ Every printer trades off **speed**, **quality** (product value multiplier) and *
 ## 📦 Products
 
 20 product tiers from cheap novelties to aerospace-grade components — keychains, bottle openers, phone stands, coasters, cable organizers, desk organizers, miniatures, phone cases, jewelry boxes, planters, lamp shades, cosplay props, drone frames, RC car parts, architectural models, industrial parts, tooling jigs, prosthetic parts, automotive parts, and aerospace components.
+
+## 🧵 Materials & Colours
+
+Each printer is loaded with its own **material** and **colour** — swap them any time from the printer card. Filament (FDM) printers and resin printers each pick from their own set of materials:
+
+| Material | Class | Cost | Quality | Reliability |
+|---|---|---|---|---|
+| PLA | Filament | Baseline | Baseline | Baseline |
+| PETG | Filament | +30% | +8% | Tougher, fewer fails |
+| ABS | Filament | +15% | +3% | Warps more, fails more |
+| TPU (Flexible) | Filament | +80% | +12% | Trickier to print |
+| Nylon | Filament | +120% | +20% | Absorbs moisture, fails more |
+| Carbon Fiber Composite | Filament | +200% | +35% | Slightly fussier |
+| Standard Resin | Resin | +150% | +15% | Baseline |
+| Tough Resin | Resin | +250% | +30% | More reliable |
+
+Colour is purely cosmetic (Black, White, Brown, Red, Orange, Yellow, Green, Blue, Purple) but still nudges sale value a little — your whole printer fleet's average material quality and colour choice feed into every sale, alongside fleet printer quality.
 
 ---
 
@@ -144,7 +170,7 @@ Open the debug console with `` ` `` and enter:
 | Code | Effect |
 |---|---|
 | `HELP` | List all codes |
-| `FILLAMENT` | +10kg filament |
+| `FILLAMENT` | +10kg of every material |
 | `MONEYBAGS` | +$10,000 |
 | `FATSTACK` | +$1,000,000 |
 | `SPEEDRUN` | 5× speed for 60s |
@@ -183,7 +209,11 @@ Then open `http://localhost:3000` (or whichever port `server.js` binds) in your 
 ```
 3dp-tycoon/
 |-- index.html       # Entire game — UI, logic, state
-|-- server.js        # Minimal static file server
+|-- server.js        # Static file server (also serves assets/*)
+|-- assets/
+|   |-- hero.png     # Key art — README cover image & boot loading-screen backdrop
+|   |-- hero2.png    # Screenshot — Printers tab
+|   `-- hero3.png    # Screenshot — Studio tab
 `-- package.json
 ```
 
@@ -205,14 +235,27 @@ Push to GitHub and enable Pages for the `main` branch.
 - **Auto-saves** every 60 seconds
 - **Auto-saves** on tab close / page hide
 - Manual save with `Ctrl+S` or the 💾 button
-- Save data stored in `localStorage`
-- Export/import a portable base64 save code from the debug console
+- Save data stored in the browser's `localStorage` — **there is no server or cloud backend**, so saves never leave the browser they were created in
+- ⚠️ **No cross-device/cross-browser sync.** A different browser, a different device, a private/incognito window, or clearing site data will not see an existing save. Deploying new versions of the game is safe (it doesn't touch anyone's `localStorage`), but switching domains/ports, or the player clearing their browser data, will orphan it.
+- Use the **⬆ EXPORT** button (or `EXPORT` debug code) to copy a portable base64 save code to your clipboard, and **⬇ IMPORT** (HUD button, splash-screen button, or `IMPORT` debug code) to restore it — this is the only way to back up a save or move it to another browser/device
 
 ---
 
 ## 📋 Changelog
 
 Versioning follows `MAJOR.MINOR.PATCH`: **major** bumps for breaking/structural changes (save format, core loop rework), **minor** bumps for new features (printers, products, systems), **patch** bumps for balance tweaks and bug fixes.
+
+### v1.4.1
+- Export/Import save codes are now actually reachable in the UI (⬆ EXPORT / ⬇ IMPORT buttons in the HUD, plus an Import option on the splash screen) — previously the functions existed but weren't wired to anything
+- Made the local-only, no-cloud-sync nature of saves explicit to players: a splash-screen notice, a tooltip on the SAVE button, and this README's Save System section all now call it out directly
+
+### v1.4.0
+- Filament materials: 6 FDM materials + 2 resins, each with its own cost/quality/reliability tradeoffs, loaded independently per printer
+- Colours: 9 cosmetic colour options per printer, each with a small fleet-averaged value bonus
+- Filament shop reworked into a per-material grid (stock, price, and quick-buy per material); auto-resupply now tops up whichever materials your printers actually use
+- Boot loading screen: a hero screenshot backdrop with an animated (cosmetic) loading bar before revealing the start form
+- `server.js` now serves real static files (previously it always returned `index.html`, which silently broke any image/asset the game references)
+- Fixed a rendering bug where the entire active tab was rebuilt on every animation frame (60/sec), which could occasionally swallow a real mouse click — most noticeably on a new player's very first ▶ PRINT click
 
 ### v1.3.0
 - Expanded to 20 products (from 7) spanning novelties to aerospace components
