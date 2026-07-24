@@ -13,6 +13,10 @@ An idle incremental business simulator where you grow a home-based 3D printing o
 ![Node.js](https://img.shields.io/badge/-Node.js-339933?logo=node.js&logoColor=white)
 ![License](https://img.shields.io/badge/license-AGPLv3%20%2B%20Commercial-00D4C8.svg)
 
+### 🎮 [**Play it now → 3dp-tycoon.thebooleanjulian.dev**](https://3dp-tycoon.thebooleanjulian.dev/)
+
+⚠️ Saves are local to your browser only — no cloud sync (yet). See the Save System section below.
+
 </div>
 
 ---
@@ -219,6 +223,9 @@ Then open `http://localhost:3000` (or whichever port `server.js` binds) in your 
 
 ## 🚀 Deployment
 
+### Live site
+Hosted and playable at **[3dp-tycoon.thebooleanjulian.dev](https://3dp-tycoon.thebooleanjulian.dev/)** — no install needed.
+
 ### GitHub Pages
 Push to GitHub and enable Pages for the `main` branch.
 
@@ -235,7 +242,7 @@ Push to GitHub and enable Pages for the `main` branch.
 - **Auto-saves** every 60 seconds
 - **Auto-saves** on tab close / page hide
 - Manual save with `Ctrl+S` or the 💾 button
-- Save data stored in the browser's `localStorage` — **there is no server or cloud backend**, so saves never leave the browser they were created in
+- Save data stored in the browser's `localStorage` — **there is no server or cloud backend**, so saves never leave the browser they were created in, including on the [live site](https://3dp-tycoon.thebooleanjulian.dev/). Cloud sync isn't implemented yet (see Future Roadmap below).
 - ⚠️ **No cross-device/cross-browser sync.** A different browser, a different device, a private/incognito window, or clearing site data will not see an existing save. Deploying new versions of the game is safe (it doesn't touch anyone's `localStorage`), but switching domains/ports, or the player clearing their browser data, will orphan it.
 - Use the **⬆ EXPORT** button (or `EXPORT` debug code) to copy a portable base64 save code to your clipboard, and **⬇ IMPORT** (HUD button, splash-screen button, or `IMPORT` debug code) to restore it — this is the only way to back up a save or move it to another browser/device
 
