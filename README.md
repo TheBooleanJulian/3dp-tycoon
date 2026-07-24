@@ -8,7 +8,7 @@
 
 An idle incremental business simulator where you grow a home-based 3D printing operation into a full manufacturing empire.
 
-![Version](https://img.shields.io/badge/version-1.4.1-00D4C8)
+![Version](https://img.shields.io/badge/version-1.6.1-00D4C8)
 ![JavaScript](https://img.shields.io/badge/-JavaScript-F7DF1E?logo=javascript&logoColor=black)
 ![Node.js](https://img.shields.io/badge/-Node.js-339933?logo=node.js&logoColor=white)
 ![License](https://img.shields.io/badge/license-AGPLv3%20%2B%20Commercial-00D4C8.svg)
@@ -23,7 +23,7 @@ An idle incremental business simulator where you grow a home-based 3D printing o
 
 ## What it does
 
-3DP Tycoon is a browser-based idle incremental game where you start with a single free printer in a cramped bedroom and scale up to a full manufacturing empire. You manage filament stock, research upgrades, automate printing and selling, hire staff, post marketing content, and eventually prestige for permanent multipliers. It's a single-file HTML/JS game served via a minimal Node.js static server — no build step, no database, just open and play.
+3DP Tycoon is a browser-based idle incremental game where you start with a single free printer in a cramped bedroom and scale up to a full manufacturing empire. You manage filament stock, research upgrades, automate printing and selling, hire staff, post marketing content, and eventually prestige for permanent multipliers. It's a plain HTML/CSS/JS game (classic `<script>`/`<link>` tags, no bundler) served via a minimal Node.js static server — no build step, no database, no npm install, just open and play. It even runs by double-clicking `index.html` directly (`file://`), no server required.
 
 ## 🎮 How to Play
 
@@ -42,7 +42,7 @@ An idle incremental business simulator where you grow a home-based 3D printing o
 ## Features
 
 - **10 distinct printers** spanning free starter clones to $120k metal SLS machines, each with unique speed, quality, cost, and fail-rate tradeoffs
-- **20 product tiers** from cheap novelties to aerospace components, with premium products locked behind progression
+- **100 products** — 20 base categories (cheap novelties to aerospace components), each with 4 variant tiers (Mini, Glow-in-the-Dark, Deluxe, Custom Engraved), so almost no two products share the same stats
 - **8 filament/resin materials and 9 colours** — each printer is loaded independently, with real cost/quality/reliability tradeoffs and a cosmetic colour bonus
 - **Workshop space system** — start with 1 printer slot, expand via shelving upgrades then rent offices, warehouses, and mega factories with ongoing rent costs
 - **Finishing Studio** — post-processing (sanding, smoothing, painting) unlocked by research for full product value
@@ -80,7 +80,18 @@ Every printer trades off **speed**, **quality** (product value multiplier) and *
 
 ## 📦 Products
 
-20 product tiers from cheap novelties to aerospace-grade components — keychains, bottle openers, phone stands, coasters, cable organizers, desk organizers, miniatures, phone cases, jewelry boxes, planters, lamp shades, cosplay props, drone frames, RC car parts, architectural models, industrial parts, tooling jigs, prosthetic parts, automotive parts, and aerospace components.
+100 products in total: 20 base categories from cheap novelties to aerospace-grade components — keychains, bottle openers, phone stands, coasters, cable organizers, desk organizers, miniatures, phone cases, jewelry boxes, planters, lamp shades, cosplay props, drone frames, RC car parts, architectural models, industrial parts, tooling jigs, prosthetic parts, automotive parts, and aerospace components.
+
+Every base category also has 4 unlockable variant tiers (unlocked after the base itself), each with meaningfully different value/filament/print-time/unlock-cost — not just a flat multiplier:
+
+| Variant | Value | Filament | Print time | Unlock cost | Flavor |
+|---|---|---|---|---|---|
+| Mini | 0.55× | 0.5× | 0.5× | 0.5× | Smaller, faster, cheaper — a quick early unlock |
+| Glow-in-the-Dark | 1.35× | 1.15× | 1.15× | 1.4× + $150 | Novelty upsell |
+| Deluxe | 1.9× | 1.6× | 1.5× | 2× + $400 | Premium finish, higher price |
+| Custom Engraved | 1.6× | 1.1× | 1.3× | 2.5× + $600 | Personalised — biggest margins |
+
+Across all 100 products, no two share the same combination of value, filament cost, print time, and unlock cost.
 
 ## 🧵 Materials & Colours
 
@@ -195,7 +206,7 @@ Open the debug console with `` ` `` and enter:
 
 | Layer | Choice |
 |---|---|
-| Frontend | Single-file HTML + JavaScript |
+| Frontend | Plain HTML + CSS + JavaScript — classic `<script src>`/`<link>` tags, no bundler, no framework |
 | Server | Node.js (static file server) |
 
 ## Quick Start
@@ -206,19 +217,26 @@ cd 3dp-tycoon
 node server.js
 ```
 
-Then open `http://localhost:3000` (or whichever port `server.js` binds) in your browser.
+Then open `http://localhost:3000` (or whichever port `server.js` binds) in your browser. Alternatively, just double-click `index.html` to open it directly in a browser (`file://`) — no server needed.
 
 ## Project Structure
 
 ```
 3dp-tycoon/
-|-- index.html       # Entire game — UI, logic, state
+|-- index.html       # Markup only — links game.js and styles.css
+|-- game.js          # Entire game — UI rendering, logic, state
+|-- styles.css       # All styling
 |-- server.js        # Static file server (also serves assets/*)
 |-- assets/
 |   |-- hero.png     # Key art — README cover image & boot loading-screen backdrop
 |   |-- hero2.png    # Screenshot — Printers tab
 |   `-- hero3.png    # Screenshot — Studio tab
-`-- package.json
+|-- package.json
+|-- LICENSE                                   # AGPLv3 full text
+|-- NOTICE                                    # Copyright + license summary
+|-- COMMERCIAL-LICENSE.md                     # Commercial licensing terms & how to request one
+|-- COMMERCIAL-LICENSE-AGREEMENT-TEMPLATE.md  # Fill-in-the-blanks agreement sent to licensees
+`-- TRADEMARKS.md                             # Project name/branding is not covered by either license
 ```
 
 ## 🚀 Deployment
@@ -251,6 +269,27 @@ Push to GitHub and enable Pages for the `main` branch.
 ## 📋 Changelog
 
 Versioning follows `MAJOR.MINOR.PATCH`: **major** bumps for breaking/structural changes (save format, core loop rework), **minor** bumps for new features (printers, products, systems), **patch** bumps for balance tweaks and bug fixes.
+
+### v1.6.1
+- Added the actual license files this project's dual-license terms depend on: `LICENSE` (AGPLv3), `NOTICE`, `COMMERCIAL-LICENSE.md`, `COMMERCIAL-LICENSE-AGREEMENT-TEMPLATE.md`, and `TRADEMARKS.md`, based on [license-finder](https://github.com/TheBooleanJulian/license-finder)'s template. The README's License section now links to these local files instead of another repository
+
+### v1.6.0
+- Replaced blind `innerHTML =` rebuilds with a small DOM-morphing renderer (`morph()`): every tab's periodic re-render now patches only what actually changed instead of tearing down and recreating the whole panel. This fixes the underlying cause behind three related bugs — the first-print click sometimes not registering, dropdowns closing mid-interaction, and rapid repeated clicks (e.g. spamming SELL) occasionally being swallowed — all in one place, and covers every tab (Printers, Products, Upgrades, Automation, Studio, Stats) rather than one at a time
+- Also fixes automation toggle switches not visually updating when their state changed from something other than a direct click (e.g. a debug code) — checkbox `checked` is a live property, not just an attribute, and needed the same explicit sync as `<select>`/`<input>` values
+
+### v1.5.3
+- Fixed dropdowns (job/material/colour selects on printer cards) getting yanked closed mid-interaction: the periodic structural rebuild was tearing down and recreating every `<select>`/`<input>` regardless of whether the player currently had one focused/open. Rebuilds now pause entirely while any dropdown or input is focused, and resume right after it's blurred
+
+### v1.5.2
+- Fixed choppy/stepped progress bars (Printers and Studio tabs) introduced by the previous render-throttling fix: the throttle stopped clicks from being swallowed, but rebuilding the whole progress bar element every 150ms made it visibly snap instead of animate. Progress bars now update via direct, per-frame DOM writes decoupled from the structural-rebuild throttle, so they're smooth again while clicks stay reliable
+
+### v1.5.1
+- Split `index.html` into `index.html` (markup only), `game.js`, and `styles.css` for readability — no gameplay changes. Uses classic `<script src>`/`<link>` (not ES modules), so `file://` access and the "just open `index.html`" workflow still work exactly as before
+- `server.js` now serves `.css` with the correct content type
+
+### v1.5.0
+- Expanded from 20 to 100 products: every base category now has 4 unlockable variant tiers (Mini, Glow-in-the-Dark, Deluxe, Custom Engraved) with distinct value/filament/time/unlock-cost combinations — no two of the 100 products share identical stats
+- Product catalogue reorganized into per-category groups (base + its variants) instead of one flat grid, since it's now 5x larger; a category's variants stay hidden until its base product is unlocked
 
 ### v1.4.1
 - Export/Import save codes are now actually reachable in the UI (⬆ EXPORT / ⬇ IMPORT buttons in the HUD, plus an Import option on the splash screen) — previously the functions existed but weren't wired to anything
@@ -310,8 +349,8 @@ Versioning follows `MAJOR.MINOR.PATCH`: **major** bumps for breaking/structural 
 
 This project is dual licensed.
 
-- **Community Edition** — [GNU Affero General Public License v3 (AGPLv3)](https://github.com/TheBooleanJulian/thebooleanjulian.github.io/blob/main/LICENSE). Free to use, modify, and self-host. If you distribute a modified version or run it as a network service, you must make the corresponding source available.
-- **Commercial License** — for organisations that want to embed, modify, or distribute this software without AGPLv3's obligations. See [COMMERCIAL-LICENSE.md](https://github.com/TheBooleanJulian/thebooleanjulian.github.io/blob/main/COMMERCIAL-LICENSE.md).
+- **Community Edition** — [GNU Affero General Public License v3 (AGPLv3)](LICENSE). Free to use, modify, and self-host. If you distribute a modified version or run it as a network service, you must make the corresponding source available.
+- **Commercial License** — for organisations that want to embed, modify, or distribute this software without AGPLv3's obligations. See [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md).
 
 ---
 
