@@ -8,7 +8,7 @@
 
 An idle incremental business simulator where you grow a home-based 3D printing operation into a full manufacturing empire.
 
-![Version](https://img.shields.io/badge/version-1.6.1-00D4C8)
+![Version](https://img.shields.io/badge/version-1.7.1-00D4C8)
 ![JavaScript](https://img.shields.io/badge/-JavaScript-F7DF1E?logo=javascript&logoColor=black)
 ![Node.js](https://img.shields.io/badge/-Node.js-339933?logo=node.js&logoColor=white)
 ![License](https://img.shields.io/badge/license-AGPLv3%20%2B%20Commercial-00D4C8.svg)
@@ -28,27 +28,31 @@ An idle incremental business simulator where you grow a home-based 3D printing o
 ## 🎮 How to Play
 
 1. **Start printing** — Select a product and hit ▶ PRINT on your Bender 3
-2. **Sell products** — Go to the Products tab to sell your inventory for cash
-3. **Buy filament** — Stock up on different materials and colours, or automation will idle your printers
+2. **Sell your first prints** — LIQUIDATE a stack instantly to a wholesaler for cash, below market rate — this works from the very start, before any upgrades, and is your only income source until you can afford CraftBazaar Shop. Research it and customers start buying your inventory automatically at full price, based on demand and publicity
+3. **Buy filament** — Stock up on different materials *and colours* — a printer loaded with red filament only draws from your red stock, not any colour of that material
 4. **Upgrade** — Research speed, efficiency, quality, and business upgrades
-5. **Automate** — Unlock auto-print, auto-sell, and filament resupply
+5. **Automate** — Unlock auto-print, auto-liquidate overflow, and filament resupply — all reachable early and cheaply
 6. **Expand** — Buy printers with different speed/quality/cost tradeoffs and unlock premium products
 7. **Make room** — You start with space for 1 printer; research cheap shelving upgrades to grow to 8, then rent office/industrial space beyond that
 8. **Finish** — Research the Post-Processing Kit to sand, smooth & paint prints for full value in the Studio tab
 9. **Market** — Post timelapse clips or attend exhibitions for followers, value boosts, and a shot at going viral
 10. **Staff up** — Hire workers (wages) or buy robot arms (one-time cost) to automate finishing and marketing
-11. **Scale Up** — Prestige for a permanent earnings multiplier
+11. **Take custom orders** — Research 3D Modelling Service to receive custom commission requests, and upsell CAD design alongside the print itself
+12. **Scale Up** — Prestige for a permanent earnings multiplier
 
 ## Features
 
 - **10 distinct printers** spanning free starter clones to $120k metal SLS machines, each with unique speed, quality, cost, and fail-rate tradeoffs
 - **100 products** — 20 base categories (cheap novelties to aerospace components), each with 4 variant tiers (Mini, Glow-in-the-Dark, Deluxe, Custom Engraved), so almost no two products share the same stats
-- **8 filament/resin materials and 9 colours** — each printer is loaded independently, with real cost/quality/reliability tradeoffs and a cosmetic colour bonus
+- **8 filament/resin materials and 9 colours, tracked discretely** — every material+colour combo is its own physical stock, and every printed batch keeps its own material/colour/printer pricing instead of being blended into one shop-wide average
+- **Passive, demand-driven sales** — once you've researched CraftBazaar Shop, customers discover and buy your listings automatically over time, scaled by your storefront reach and publicity. LIQUIDATE cashes a stack out instantly to a wholesaler below market rate whenever you need cash — including right at the start, before any upgrades, so there's always a way to turn prints into money
 - **Workshop space system** — start with 1 printer slot, expand via shelving upgrades then rent offices, warehouses, and mega factories with ongoing rent costs
 - **Finishing Studio** — post-processing (sanding, smoothing, painting) unlocked by research for full product value
 - **Marketing system** — post timelapse clips or attend randomly triggered exhibitions (Maker Faire → International Expo) to gain followers, value boosts, and viral chances
+- **Custom commissions** — customers periodically request a specific custom item; upsell your 3D Modelling Service alongside the print for extra revenue
+- **More random events** — supplier discounts, equipment malfunctions, press features, rave reviews, and shipping delays swing your business beyond bulk orders/exhibitions/commissions
 - **Workforce** — hire human workers (wages) or buy robot arms (one-time cost) to automate finishing and marketing
-- **Full automation** — unlock auto-print, auto-sell, and filament resupply so the operation runs hands-off
+- **Full automation, reachable early** — auto-print, auto-liquidate overflow, and filament resupply are all cheap, tier-1 unlocks so the operation can go hands-off well before the late game
 - **Achievements** — unlock tracking across prints, earnings, followers, and more
 - **Prestige** — reset for a permanent earnings multiplier and replay with a head start
 - **Save export/import** — clipboard-based base64 save codes alongside `localStorage` auto-save
@@ -63,7 +67,7 @@ An idle incremental business simulator where you grow a home-based 3D printing o
 
 ## 🖨️ Printers
 
-Every printer trades off **speed**, **quality** (product value multiplier) and **cost** differently — there's no single best machine. Quality is judged as your fleet average, so a mix of machines shapes your overall sale prices; each printer also has its own filament efficiency and fail-rate modifier.
+Every printer trades off **speed**, **quality** (product value multiplier) and **cost** differently — there's no single best machine. Quality is priced per batch: whatever printer, material, and colour actually produced an item determines its sale price, so different printers in your fleet genuinely produce different-value stock rather than being blended into one average. Each printer also has its own filament efficiency and fail-rate modifier.
 
 | Printer | Cost | Speed | Quality | Notes |
 |---|---|---|---|---|
@@ -108,7 +112,7 @@ Each printer is loaded with its own **material** and **colour** — swap them an
 | Standard Resin | Resin | +150% | +15% | Baseline |
 | Tough Resin | Resin | +250% | +30% | More reliable |
 
-Colour is purely cosmetic (Black, White, Brown, Red, Orange, Yellow, Green, Blue, Purple) but still nudges sale value a little — your whole printer fleet's average material quality and colour choice feed into every sale, alongside fleet printer quality.
+Colour is purely cosmetic (Black, White, Brown, Red, Orange, Yellow, Green, Blue, Purple) but still nudges sale value a little. Filament stock is tracked **per material and per colour** — a printer loaded with red PETG draws down your red PETG spool specifically, not just "PETG" in general, so buy the colours you actually intend to print.
 
 ---
 
@@ -168,6 +172,14 @@ Workers get paid automatically from your balance each tick — if you run out of
 
 Completed prints have a chance to capture a timelapse clip. Post clips from the Studio tab to gain followers and a temporary sell-value boost — with a chance to go viral for a much bigger payout. Followers also grant a small permanent value bonus (capped at +50%).
 
+## 🖥️ Custom Commissions & 3D Modelling Upsell
+
+Research the **3D Modelling Service** upgrade (Business tree) to start receiving custom commission requests — a customer asks for a specific product/material/colour combination and offers to pay for the print. Accept print-only for the base reward, or accept **with the modelling upsell** for an extra fee on top, representing the CAD design work behind a one-off custom part.
+
+## 🎲 More Random Events
+
+Beyond bulk orders, exhibitions, and commissions, your shop is also subject to periodic random swings: supplier bulk discounts (cheaper filament for a while), equipment malfunctions (temporary fail-rate spike), local press features (follower boost), customer rave reviews (temporary demand boost), and shipping delays (temporary demand slowdown).
+
 ---
 
 ## 🔑 Keyboard Shortcuts
@@ -185,7 +197,7 @@ Open the debug console with `` ` `` and enter:
 | Code | Effect |
 |---|---|
 | `HELP` | List all codes |
-| `FILLAMENT` | +10kg of every material |
+| `FILLAMENT` | +10kg of every material/colour combo |
 | `MONEYBAGS` | +$10,000 |
 | `FATSTACK` | +$1,000,000 |
 | `SPEEDRUN` | 5× speed for 60s |
@@ -270,6 +282,18 @@ Push to GitHub and enable Pages for the `main` branch.
 
 Versioning follows `MAJOR.MINOR.PATCH`: **major** bumps for breaking/structural changes (save format, core loop rework), **minor** bumps for new features (printers, products, systems), **patch** bumps for balance tweaks and bug fixes.
 
+### v1.7.1
+- Lowered CraftBazaar Shop's cost ($150 → $75) so it's reachable with roughly 20 LIQUIDATE sales on top of starting cash, rather than requiring an extended liquidation grind first
+
+### v1.7.0
+- **Fixed:** filament colour was cosmetic-only — a printer loaded with "red" could print using any colour's stock as long as the material had grams. Filament stock is now tracked per material *and* per colour; printers only draw down the specific colour they're loaded with, and you pick a colour when buying
+- **Fixed:** all sold inventory of a product was lumped into a single stack priced off whichever material/colour/printer was most recently used. Inventory (and raw inventory) is now tracked as discrete stacks per product+material+colour+printer, each priced independently — a batch of red PETG off a Mambo X1 and a batch of black PLA off a Bender 3 are two separate, separately-priced stacks
+- **Reworked selling:** manual instant "SELL" buttons are gone. Once you've researched CraftBazaar Shop, customers buy your inventory automatically over time, scaled by demand and publicity (followers/viral boosts) — no cash appears until a customer actually buys. A new LIQUIDATE action still lets you cash out a stack instantly to a wholesaler, at a discount, for players who need money right now
+- Automation is reachable much earlier: CraftBazaar Shop, Auto Print Queue, and Filament Auto-Resupply are all substantially cheaper. `Auto-Sell System` is replaced by `Auto-Liquidate Overflow`, which automatically liquidates any variant once it exceeds 50 units so the warehouse doesn't pile up forever
+- Added custom commission requests: research the new **3D Modelling Service** upgrade to receive periodic custom orders, with an option to upsell your 3D modelling/CAD service alongside the print for extra revenue
+- Added more random events: supplier bulk discounts, equipment malfunctions, local press features, customer rave reviews, and shipping delays, on top of bulk orders and exhibitions
+- Added lifetime cumulative print mass stats (successful vs. failed, in grams) to the Stats tab
+
 ### v1.6.1
 - Added the actual license files this project's dual-license terms depend on: `LICENSE` (AGPLv3), `NOTICE`, `COMMERCIAL-LICENSE.md`, `COMMERCIAL-LICENSE-AGREEMENT-TEMPLATE.md`, and `TRADEMARKS.md`, based on [license-finder](https://github.com/TheBooleanJulian/license-finder)'s template. The README's License section now links to these local files instead of another repository
 
@@ -336,8 +360,7 @@ Versioning follows `MAJOR.MINOR.PATCH`: **major** bumps for breaking/structural 
 - **Cloud save sync** — optional account-based save backup so progress isn't tied to one browser
 - **Leaderboards** — compare prestige count / net worth with other players (needs a backend)
 - **More prestige layers** — a second "meta" prestige beyond `PRESTIGE1` for long-term progression
-- **More random events** — printer jams, filament price swings, and other variance beyond bulk orders & exhibitions
-- **Statistics dashboard** — lifetime totals, per-product profit graphs, printtime breakdown
+- **Statistics dashboard** — per-product profit graphs, printtime breakdown
 - **Themes/skins** — alternate UI palettes or a light mode
 - **Mod/community recipes** — JSON-defined custom products or printers for self-hosters
 - **Test coverage** — no automated tests currently exist for the game logic

@@ -103,9 +103,8 @@
   <!-- PRODUCTS TAB -->
   <div class="tab-panel" id="tab-products">
     <div id="order-ticker-wrap"></div>
-    <div class="section-hdr"><h2>SELL INVENTORY</h2><div class="hdr-line"></div>
-      <button class="btn btn-green btn-sm" onclick="sellAll()">💰 SELL ALL</button>
-    </div>
+    <div class="section-hdr"><h2>INVENTORY</h2><div class="hdr-line"></div></div>
+    <div class="tip" style="margin-bottom:10px">LIQUIDATE cashes out a stack instantly to a wholesaler below market rate — always available, even before any upgrades. Research CraftBazaar Shop (Business tree) to also start getting automatic full-price sales from customers over time.</div>
     <div id="sell-grid" class="grid-3" style="margin-bottom:20px"></div>
     <div class="section-hdr"><h2>PRODUCT CATALOGUE</h2><div class="hdr-line"></div></div>
     <div id="product-grid"></div>
@@ -173,6 +172,20 @@
     <div class="modal-btns">
       <button class="btn btn-green" onclick="acceptExhibition()">🎪 BOOTH UP</button>
       <button class="btn btn-ghost" onclick="declineExhibition()">❌ SKIP</button>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Commission Modal -->
+<div id="commission-modal">
+  <div class="modal-box">
+    <div class="modal-title">🖥️ CUSTOM COMMISSION REQUEST!</div>
+    <div class="modal-body" id="commission-modal-body">A customer wants a custom order!</div>
+    <div class="modal-reward" id="commission-modal-reward">$0</div>
+    <div class="modal-btns">
+      <button class="btn btn-green" onclick="acceptCommission(true)">🖥️ ACCEPT + MODELLING UPSELL</button>
+      <button class="btn btn-primary" onclick="acceptCommission(false)">✅ ACCEPT (PRINT ONLY)</button>
+      <button class="btn btn-ghost" onclick="declineCommission()">❌ DECLINE</button>
     </div>
   </div>
 </div>

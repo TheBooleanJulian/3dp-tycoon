@@ -1,7 +1,7 @@
 // ========================
 // GAME DATA
 // ========================
-const VERSION = '1.6.1';
+const VERSION = '1.7.1';
 
 // PRODUCT_BASES are the 20 "common" items — the plain, baseline version of each category.
 // Each one also spawns 4 variant tiers (see PRODUCT_VARIANTS below) so that almost no two
@@ -118,9 +118,10 @@ const UPGRADES = {
   cf_petg:        { id:'cf_petg',        cat:'efficiency', name:'Carbon Fiber PETG',    icon:'🔩', cost:2000,  desc:'Industrial-grade material.',effect:'+45% industrial value', req:['pla_plus'],      fn:s=>{s.industrialBonus*=1.45} },
   filament_dryer: { id:'filament_dryer', cat:'efficiency', name:'Filament Dryer',       icon:'🌡️', cost:180,   desc:'Eliminate moisture issues.', effect:'−60% print failures',  req:[],                fn:s=>{s.failRate*=0.4} },
   // Business
-  etsy_store:     { id:'etsy_store',     cat:'business',   name:'CraftBazaar Shop',     icon:'🛍️', cost:300,   desc:'Your online storefront.',   effect:'+12% value, unlock auto-sell', req:[],            fn:s=>{s.valueMult*=1.12; s.unlockedAutoSell=true} },
+  etsy_store:     { id:'etsy_store',     cat:'business',   name:'CraftBazaar Shop',     icon:'🛍️', cost:75,    desc:'Your online storefront.',   effect:'+12% value, unlock passive online sales', req:[],            fn:s=>{s.valueMult*=1.12; s.unlockedAutoSell=true} },
   social_media:   { id:'social_media',   cat:'business',   name:'Social Media Presence',icon:'📱', cost:750,   desc:'Influencer collabs.',       effect:'+22% all values, unlock expo invites', req:['etsy_store'],    fn:s=>{s.valueMult*=1.22; s.exhibitionsEnabled=true} },
   biz_license:    { id:'biz_license',    cat:'business',   name:'Business License',     icon:'📋', cost:1500,  desc:'Official registered biz.',  effect:'Enable bulk orders',    req:['social_media'],  fn:s=>{s.bulkOrdersEnabled=true} },
+  modelling_service: { id:'modelling_service', cat:'business', name:'3D Modelling Service', icon:'🖥️', cost:2200, desc:'Offer custom CAD design alongside printing.', effect:'Enable custom commission requests', req:['social_media'], fn:s=>{s.commissionsEnabled=true} },
   // Room / shelving — a separate early, cheap progression so a cramped bedroom setup can grow to 8 printers
   wall_shelving:  { id:'wall_shelving',  cat:'space',      name:'Wall-Mounted Shelving',icon:'🗄️', cost:250,   desc:'Vertical storage for more printers.', effect:'+2 room capacity', req:[],                 fn:s=>{s.roomCapacityBonus=(s.roomCapacityBonus||0)+2} },
   overhead_rack:  { id:'overhead_rack',  cat:'space',      name:'Overhead Rack System', icon:'🪜', cost:900,   desc:'Ceiling-height racking.',   effect:'+2 room capacity',      req:['wall_shelving'], fn:s=>{s.roomCapacityBonus=(s.roomCapacityBonus||0)+2} },
@@ -134,14 +135,23 @@ const UPGRADES = {
 };
 
 const AUTOMATION_ITEMS = {
-  auto_print:   { id:'auto_print',   name:'Auto Print Queue',        icon:'🔄', cost:500,   tier:1, desc:'Printers auto-restart when a job completes. Requires filament.' },
-  auto_sell:    { id:'auto_sell',    name:'Auto-Sell System',        icon:'🤝', cost:800,   tier:1, desc:'Auto-sell all finished products every 30 sec. Requires CraftBazaar Shop.', req:'etsy_store' },
-  auto_filament:{ id:'auto_filament',name:'Filament Auto-Resupply',  icon:'📦', cost:1200,  tier:1, desc:'Automatically orders 1kg filament when stock drops below threshold.' },
-  batch_print:  { id:'batch_print',  name:'Batch Print Manager',     icon:'⚡', cost:3500,  tier:2, desc:'Queue multiple products. Printers cycle through the queue.' },
-  price_opt:    { id:'price_opt',    name:'Dynamic Pricing AI',      icon:'📈', cost:6000,  tier:2, desc:'Optimises sell timing for +22% revenue on all auto-sales.' },
-  jit_logistics:{ id:'jit_logistics',name:'JIT Filament Logistics',  icon:'🚚', cost:12000, tier:3, desc:'Bulk delivery system. Filament costs 28% less across the board.' },
-  ai_scheduler: { id:'ai_scheduler', name:'AI Print Scheduler',      icon:'🤖', cost:25000, tier:3, desc:'Optimal job scheduling across all printers. +18% throughput.' },
+  auto_print:     { id:'auto_print',     name:'Auto Print Queue',        icon:'🔄', cost:150,   tier:1, desc:'Printers auto-restart when a job completes. Requires filament.' },
+  auto_liquidate: { id:'auto_liquidate', name:'Auto-Liquidate Overflow', icon:'🤝', cost:600,   tier:1, desc:'Auto-liquidates a variant once it exceeds 50 units in stock, so the warehouse never overflows. Requires CraftBazaar Shop.', req:'etsy_store' },
+  auto_filament:  { id:'auto_filament',  name:'Filament Auto-Resupply',  icon:'📦', cost:400,   tier:1, desc:'Automatically orders 1kg filament (matching colour) when stock drops below threshold.' },
+  batch_print:    { id:'batch_print',    name:'Batch Print Manager',     icon:'⚡', cost:3500,  tier:2, desc:'Queue multiple products. Printers cycle through the queue.' },
+  price_opt:      { id:'price_opt',      name:'Dynamic Pricing AI',      icon:'📈', cost:6000,  tier:2, desc:'Optimises price timing for +22% revenue on all passive sales & liquidations.' },
+  jit_logistics:  { id:'jit_logistics',  name:'JIT Filament Logistics',  icon:'🚚', cost:12000, tier:3, desc:'Bulk delivery system. Filament costs 28% less across the board.' },
+  ai_scheduler:   { id:'ai_scheduler',   name:'AI Print Scheduler',      icon:'🤖', cost:25000, tier:3, desc:'Optimal job scheduling across all printers. +18% throughput.' },
 };
+
+// More random events — flavour swings that fire periodically alongside bulk orders/exhibitions/commissions.
+const RANDOM_EVENTS = [
+  { name:'Supplier Bulk Discount', icon:'📦', type:'discount',  mult:0.7, duration:60,  msg:mins=>`📦 Supplier discount! Filament costs -30% for ${mins}m` },
+  { name:'Equipment Malfunction',  icon:'⚡', type:'failspike', mult:1.8, duration:45,  msg:mins=>`⚡ Power fluctuation! Print failure rate spikes for ${mins}m` },
+  { name:'Local Press Feature',    icon:'📰', type:'followers', amount:[100,400],       msg:g=>`📰 Local news featured your shop! +${g} followers` },
+  { name:'Customer Rave Review',   icon:'⭐', type:'demand',    mult:1.6, duration:90,  msg:mins=>`⭐ A rave review is boosting demand ×1.6 for ${mins}m` },
+  { name:'Shipping Delay',         icon:'📮', type:'demand',    mult:0.6, duration:60,  msg:mins=>`📮 Shipping delays are slowing sales for ${mins}m` },
+];
 
 const PROCESS_STAGES = [
   { id:'sand',   name:'Sanding',   icon:'🧹', time:15 },
@@ -198,15 +208,43 @@ let G = null;
 let printerId = 0;
 let stationId = 0;
 
+// Filament stock is tracked per material AND per colour — a spool of red PETG is a
+// physically different roll from black PETG, so loading "red" on a printer must draw down
+// red stock specifically rather than any grams of PETG the shop happens to own.
 function freshFilamentStock() {
   const s = {};
-  for (const id of Object.keys(MATERIALS)) s[id] = 0;
+  for (const id of Object.keys(MATERIALS)) {
+    s[id] = {};
+    for (const cid of Object.keys(COLORS)) s[id][cid] = 0;
+  }
   return s;
+}
+
+function getFilamentGrams(materialId, colorId) {
+  return (G.filamentStock[materialId] || {})[colorId] || 0;
+}
+
+function getTotalFilament() {
+  let total = 0;
+  for (const byColor of Object.values(G.filamentStock)) {
+    total += Object.values(byColor).reduce((a,b)=>a+b, 0);
+  }
+  return total;
+}
+
+function stackKey(productId, material, color, printerTypeId) {
+  return `${productId}__${material}__${color}__${printerTypeId}`;
+}
+
+function addToInventory(store, productId, material, color, printerTypeId, qty) {
+  const key = stackKey(productId, material, color, printerTypeId);
+  if (!store[key]) store[key] = { productId, material, color, printerTypeId, qty: 0 };
+  store[key].qty += qty;
 }
 
 function defaultState(shopName) {
   const startStock = freshFilamentStock();
-  startStock.pla = 500;
+  startStock.pla.black = 500;
   return {
     version: VERSION,
     shopName: shopName || 'MY PRINT SHOP',
@@ -216,6 +254,7 @@ function defaultState(shopName) {
     rawInventory: {},
     printers: [{ id: ++printerId, typeId:'ender3', progress:0, printing:false, job:'keychain', material:'pla', color:'black', totalPrints:0, active:true }],
     unlockedProducts: ['keychain'],
+    filamentColorPick: {}, // last colour picked per material in the Buy Filament UI (cosmetic, not gameplay state)
     upgrades: {},
     automationOwned: {},
     automationActive: {},
@@ -225,7 +264,7 @@ function defaultState(shopName) {
     spaceUnpaid: {},
     // Finishing Studio (post-processing)
     processingUnlocked: false,
-    processingStations: [{ id: ++stationId, stage:-1, productId:null, progress:0 }],
+    processingStations: [{ id: ++stationId, stage:-1, item:null, progress:0 }],
     totalProcessed: 0,
     // Workforce
     staff: {},        // { finisher: 'worker'|'robot', marketer: 'worker'|'robot' }
@@ -259,15 +298,31 @@ function defaultState(shopName) {
     totalPrints: 0,
     lifetimeEarned: 0,
     totalFilamentUsed: 0,
+    totalMassSuccess: 0,
+    totalMassFailed: 0,
     playTime: 0,
     startTime: Date.now(),
     // Auto timers
-    autoSellTimer: 0,
     bulkOrderTimer: 0,
     bulkOrderInterval: 120,
     // Bulk orders
     bulkOrdersAccepted: 0,
     pendingBulkOrder: null,
+    // Custom commissions (3D modelling upsell)
+    commissionsEnabled: false,
+    commissionTimer: 0,
+    commissionInterval: 200 + Math.random() * 200,
+    pendingCommission: null,
+    commissionsCompleted: 0,
+    // Random events
+    randomEventTimer: 0,
+    randomEventInterval: 90 + Math.random() * 150,
+    filamentPriceEventMult: 1.0,
+    filamentPriceEventUntil: 0,
+    failRateEventMult: 1.0,
+    failRateEventUntil: 0,
+    demandEventMult: 1.0,
+    demandEventUntil: 0,
     // Prestige
     prestigeCount: 0,
     prestigeMult: 1.0,
@@ -293,7 +348,15 @@ function migrateState(state) {
   const neededCap = state.printers.length - ROOM_BASE_CAPACITY;
   if (neededCap > (state.roomCapacityBonus || 0)) state.roomCapacityBonus = neededCap;
   if (!state.rawInventory) state.rawInventory = {};
-  if (!state.processingStations) state.processingStations = [{ id: ++stationId, stage:-1, productId:null, progress:0 }];
+  if (!state.processingStations) state.processingStations = [{ id: ++stationId, stage:-1, item:null, progress:0 }];
+  // Old stations stored a flat `productId` field on the station itself instead of a full item
+  // (product+material+colour+printer) — backfill with generic PLA/black/ender3 so busy stations
+  // don't lose their in-progress job on load.
+  for (const st of state.processingStations) {
+    if (st.stage !== -1 && !st.item) {
+      st.item = { productId: st.productId || null, material:'pla', color:'black', printerTypeId:'ender3' };
+    }
+  }
   if (state.processingUnlocked === undefined) state.processingUnlocked = false;
   if (state.totalProcessed === undefined) state.totalProcessed = 0;
   if (!state.staff) state.staff = {};
@@ -313,7 +376,23 @@ function migrateState(state) {
   // Filament materials — old saves had a single `filament` gram count instead of per-material stock
   if (!state.filamentStock) {
     state.filamentStock = freshFilamentStock();
-    state.filamentStock.pla = state.filament || 0;
+    state.filamentStock.pla.black = state.filament || 0;
+  } else {
+    // Each material may still be a flat gram number from before per-colour tracking existed —
+    // fold that amount into "black" and backfill every other colour bucket to 0.
+    for (const matId of Object.keys(MATERIALS)) {
+      const existing = state.filamentStock[matId];
+      if (typeof existing === 'number') {
+        state.filamentStock[matId] = {};
+        for (const cid of Object.keys(COLORS)) state.filamentStock[matId][cid] = 0;
+        state.filamentStock[matId].black = existing;
+      } else if (!existing) {
+        state.filamentStock[matId] = {};
+        for (const cid of Object.keys(COLORS)) state.filamentStock[matId][cid] = 0;
+      } else {
+        for (const cid of Object.keys(COLORS)) if (existing[cid] === undefined) existing[cid] = 0;
+      }
+    }
   }
   for (const p of state.printers) {
     if (!p.material) {
@@ -321,6 +400,42 @@ function migrateState(state) {
       p.material = Object.values(MATERIALS).find(m => m.matClass === pt?.matClass)?.id || 'pla';
     }
     if (!p.color) p.color = 'black';
+  }
+  // Inventory/rawInventory used to be a flat productId -> qty map. Fold any leftover flat
+  // entries into a generic PLA/black/ender3 stack so old saves don't lose their stock.
+  for (const field of ['inventory', 'rawInventory']) {
+    if (!state[field]) { state[field] = {}; continue; }
+    const migrated = {};
+    for (const [k, v] of Object.entries(state[field])) {
+      if (typeof v === 'number') {
+        if (v > 0) addToInventory(migrated, k, 'pla', 'black', 'ender3', v);
+      } else if (v && typeof v === 'object') {
+        migrated[k] = v;
+      }
+    }
+    state[field] = migrated;
+  }
+  if (!state.filamentColorPick) state.filamentColorPick = {};
+  if (state.totalMassSuccess === undefined) state.totalMassSuccess = 0;
+  if (state.totalMassFailed === undefined) state.totalMassFailed = 0;
+  if (state.commissionsEnabled === undefined) state.commissionsEnabled = !!(state.upgrades && state.upgrades.modelling_service);
+  if (state.commissionTimer === undefined) state.commissionTimer = 0;
+  if (state.commissionInterval === undefined) state.commissionInterval = 200 + Math.random() * 200;
+  if (state.pendingCommission === undefined) state.pendingCommission = null;
+  if (state.commissionsCompleted === undefined) state.commissionsCompleted = 0;
+  if (state.randomEventTimer === undefined) state.randomEventTimer = 0;
+  if (state.randomEventInterval === undefined) state.randomEventInterval = 90 + Math.random() * 150;
+  if (state.filamentPriceEventMult === undefined) state.filamentPriceEventMult = 1.0;
+  if (state.filamentPriceEventUntil === undefined) state.filamentPriceEventUntil = 0;
+  if (state.failRateEventMult === undefined) state.failRateEventMult = 1.0;
+  if (state.failRateEventUntil === undefined) state.failRateEventUntil = 0;
+  if (state.demandEventMult === undefined) state.demandEventMult = 1.0;
+  if (state.demandEventUntil === undefined) state.demandEventUntil = 0;
+  // auto_sell was replaced by auto_liquidate — carry the purchase across so players don't lose
+  // the automation slot they already paid for.
+  if (state.automationOwned && state.automationOwned.auto_sell && !state.automationOwned.auto_liquidate) {
+    state.automationOwned.auto_liquidate = true;
+    state.automationActive.auto_liquidate = state.automationActive.auto_sell !== false;
   }
 }
 
@@ -365,7 +480,8 @@ function tick(dt) {
     p.progress += rate * dt;
     if (p.progress >= 100) {
       p.progress = 0;
-      completePrint(p, p.job);
+      completePrint(p, p.activeJob || { productId: p.job, material: p.material, color: p.color, printerTypeId: p.typeId, filCost: getFilamentCost(prod, p.typeId) });
+      p.activeJob = null;
       p.printing = false;
       if (G.automationOwned.auto_print && G.automationActive.auto_print) {
         tryStartPrint(p);
@@ -373,28 +489,31 @@ function tick(dt) {
     }
   }
 
-  // Auto-sell
-  if (G.automationOwned.auto_sell && G.automationActive.auto_sell) {
-    G.autoSellTimer += dt;
-    const interval = 30;
-    if (G.autoSellTimer >= interval) {
-      G.autoSellTimer = 0;
-      autoSellAll();
+  // Passive demand-driven sales — customers buy on their own once you have a storefront;
+  // auto-liquidate keeps overflow stock from piling up forever.
+  tickSales(dt);
+  if (G.automationOwned.auto_liquidate && G.automationActive.auto_liquidate) {
+    const cap = 50;
+    for (const key of Object.keys(G.inventory)) {
+      const stack = G.inventory[key];
+      if (stack.qty > cap) liquidateStack(key, stack.qty - cap);
     }
   }
 
-  // Auto-filament — resupplies whichever materials your printers are actually loaded with
+  // Auto-filament — resupplies whichever material+colour combos your printers are actually loaded with
   if (G.automationOwned.auto_filament && G.automationActive.auto_filament) {
     const threshold = 600;
     const qty = 1000;
-    const inUse = new Set(G.printers.map(p => p.material));
-    for (const matId of inUse) {
-      if ((G.filamentStock[matId] || 0) < threshold) {
+    const inUse = new Set(G.printers.map(p => p.material + '|' + p.color));
+    for (const combo of inUse) {
+      const [matId, colorId] = combo.split('|');
+      if (getFilamentGrams(matId, colorId) < threshold) {
         const cost = qty * getMaterialPrice(matId);
         if (G.money >= cost) {
           G.money -= cost;
-          G.filamentStock[matId] += qty;
-          toast(`📦 Auto-resupply: +${qty}g ${MATERIALS[matId].name}`, 'info');
+          if (!G.filamentStock[matId]) G.filamentStock[matId] = {};
+          G.filamentStock[matId][colorId] = (G.filamentStock[matId][colorId] || 0) + qty;
+          toast(`📦 Auto-resupply: +${qty}g ${COLORS[colorId]?.name || ''} ${MATERIALS[matId].name}`, 'info');
         }
       }
     }
@@ -408,9 +527,10 @@ function tick(dt) {
   tickStaffWages(dt);
   tickMarketing(dt);
   tickRent(dt);
+  tickRandomEvents(dt);
 
   // Bulk orders
-  if (G.bulkOrdersEnabled && !G.pendingBulkOrder && !G.pendingExhibition) {
+  if (G.bulkOrdersEnabled && !G.pendingBulkOrder && !G.pendingExhibition && !G.pendingCommission) {
     G.bulkOrderTimer += dt;
     if (G.bulkOrderTimer >= G.bulkOrderInterval) {
       G.bulkOrderTimer = 0;
@@ -420,12 +540,22 @@ function tick(dt) {
   }
 
   // Exhibition invitations
-  if (G.exhibitionsEnabled && !G.pendingExhibition && !G.pendingBulkOrder) {
+  if (G.exhibitionsEnabled && !G.pendingExhibition && !G.pendingBulkOrder && !G.pendingCommission) {
     G.exhibitionTimer += dt;
     if (G.exhibitionTimer >= G.exhibitionInterval) {
       G.exhibitionTimer = 0;
       G.exhibitionInterval = 150 + Math.random() * 150;
       triggerExhibition();
+    }
+  }
+
+  // Custom commission requests (3D modelling upsell)
+  if (G.commissionsEnabled && !G.pendingCommission && !G.pendingBulkOrder && !G.pendingExhibition) {
+    G.commissionTimer += dt;
+    if (G.commissionTimer >= G.commissionInterval) {
+      G.commissionTimer = 0;
+      G.commissionInterval = 200 + Math.random() * 200;
+      triggerCommission();
     }
   }
 
@@ -457,23 +587,27 @@ function tryStartPrint(printer) {
   const prod = PRODUCTS[printer.job];
   if (!prod) return;
   const filCost = getFilamentCost(prod, printer.typeId);
-  if ((G.filamentStock[printer.material] || 0) >= filCost) {
-    G.filamentStock[printer.material] -= filCost;
+  if (getFilamentGrams(printer.material, printer.color) >= filCost) {
+    G.filamentStock[printer.material][printer.color] -= filCost;
     G.totalFilamentUsed += filCost;
     printer.printing = true;
     printer.progress = 0;
+    printer.activeJob = { productId: printer.job, material: printer.material, color: printer.color, printerTypeId: printer.typeId, filCost };
   }
 }
 
-function completePrint(printer, productId) {
+function completePrint(printer, job) {
   // Failure check — printer failMod and material failMod both make failures more/less likely
-  const pTypeFail = PRINTER_TYPES[printer.typeId];
-  const matFail = MATERIALS[printer.material];
-  if (Math.random() < G.failRate * (pTypeFail?.failMod || 1) * (matFail?.failMod || 1)) {
+  const pTypeFail = PRINTER_TYPES[job.printerTypeId];
+  const matFail = MATERIALS[job.material];
+  const failed = Math.random() < G.failRate * (pTypeFail?.failMod || 1) * (matFail?.failMod || 1) * activeMult('failRateEvent');
+  if (failed) {
+    G.totalMassFailed += job.filCost;
     toast(`⚠️ Print failed on ${pTypeFail.name}!`, 'warning');
     return;
   }
-  G.rawInventory[productId] = (G.rawInventory[productId] || 0) + 1;
+  G.totalMassSuccess += job.filCost;
+  addToInventory(G.rawInventory, job.productId, job.material, job.color, job.printerTypeId, 1);
   printer.totalPrints++;
   G.totalPrints++;
 
@@ -490,13 +624,14 @@ function manualStartPrint(printerId) {
   const prod = PRODUCTS[p.job];
   if (!prod) return;
   const filCost = getFilamentCost(prod, p.typeId);
-  if ((G.filamentStock[p.material] || 0) < filCost) {
-    toast(`⚠️ Not enough ${MATERIALS[p.material].name}!`, 'warning'); return;
+  if (getFilamentGrams(p.material, p.color) < filCost) {
+    toast(`⚠️ Not enough ${COLORS[p.color]?.name || ''} ${MATERIALS[p.material].name}!`, 'warning'); return;
   }
-  G.filamentStock[p.material] -= filCost;
+  G.filamentStock[p.material][p.color] -= filCost;
   G.totalFilamentUsed += filCost;
   p.printing = true;
   p.progress = 0;
+  p.activeJob = { productId: p.job, material: p.material, color: p.color, printerTypeId: p.typeId, filCost };
 }
 
 function stopPrinter(printerId) {
@@ -511,19 +646,22 @@ function getFilamentCost(prod, printerTypeId) {
 
 function getMaterialPrice(materialId) {
   const mat = MATERIALS[materialId];
-  return G.filamentPrice * (mat?.costMult || 1);
+  return G.filamentPrice * (mat?.costMult || 1) * activeMult('filamentPriceEvent');
 }
 
-function getProductValue(productId, printerTypeId) {
+// Value of ONE specific unit — a black PLA keychain off an ender3 and a red silk PETG keychain
+// off a Mambo X1 are priced independently rather than being blended into one fleet-wide average,
+// so switching material/colour per printer has a real, discrete effect on what that batch sells for.
+function getProductValue(productId, printerTypeId, materialId, colorId) {
   const prod = PRODUCTS[productId];
   if (!prod) return 0;
   let v = prod.baseValue * G.valueMult * G.prestigeMult;
   const pType = PRINTER_TYPES[printerTypeId];
-  // Fleet quality — your average printer roster's finish quality lifts (or drags) all sale prices
-  v *= getFleetQualityMult();
-  // Fleet material & color — the materials/colors loaded across your printers also nudge sale value
-  v *= getFleetMaterialMult();
-  v *= getFleetColorMult();
+  if (pType) v *= pType.quality || 1;
+  const mat = MATERIALS[materialId];
+  if (mat) v *= mat.qualityMult || 1;
+  const col = COLORS[colorId];
+  if (col) v *= col.bonus || 1;
   // Printer-specific bonuses
   if (pType && pType.bonusProd === productId) v *= pType.bonusMult;
   // Industrial bonus
@@ -535,6 +673,22 @@ function getProductValue(productId, printerTypeId) {
   // Marketing (followers + viral boost)
   v *= getMarketingMult();
   return Math.round(v * 100) / 100;
+}
+
+// Reference/catalogue price shown before any unit has actually been printed — uses global
+// multipliers only, since there's no specific printer/material/colour combo to price yet.
+function getBaseDisplayValue(productId) {
+  const prod = PRODUCTS[productId];
+  if (!prod) return 0;
+  const v = prod.baseValue * G.valueMult * G.prestigeMult * getMarketingMult();
+  return Math.round(v * 100) / 100;
+}
+
+// Active-event multiplier helper — `field` is the multiplier's base name; expects a matching
+// `<field>Mult` and `<field>Until` (playTime-based) pair on G, same pattern as the viral boost.
+function activeMult(field) {
+  const untilVal = G[field + 'Until'];
+  return (untilVal && G.playTime < untilVal) ? (G[field + 'Mult'] ?? 1.0) : 1.0;
 }
 
 function getMarketingMult() {
@@ -561,51 +715,49 @@ function printerRating(pt) {
   };
 }
 
-function getFleetQualityMult() {
-  if (!G.printers.length) return 1;
-  let sum = 0, cnt = 0;
-  for (const p of G.printers) {
-    const pt = PRINTER_TYPES[p.typeId];
-    if (pt) { sum += pt.quality || 1; cnt++; }
-  }
-  return cnt ? sum / cnt : 1;
-}
-
-function getFleetMaterialMult() {
-  if (!G.printers.length) return 1;
-  let sum = 0, cnt = 0;
-  for (const p of G.printers) {
-    const mat = MATERIALS[p.material];
-    if (mat) { sum += mat.qualityMult || 1; cnt++; }
-  }
-  return cnt ? sum / cnt : 1;
-}
-
-function getFleetColorMult() {
-  if (!G.printers.length) return 1;
-  let sum = 0, cnt = 0;
-  for (const p of G.printers) {
-    const col = COLORS[p.color];
-    if (col) { sum += col.bonus || 1; cnt++; }
-  }
-  return cnt ? sum / cnt : 1;
-}
-
-function getRawSaleValue(productId, printerTypeId) {
-  return Math.round(getProductValue(productId, printerTypeId) * RAW_SELL_MULT * 100) / 100;
+function getRawSaleValue(productId, printerTypeId, materialId, colorId) {
+  return Math.round(getProductValue(productId, printerTypeId, materialId, colorId) * RAW_SELL_MULT * 100) / 100;
 }
 
 // ========================
-// SELL
+// SELL — passive, demand/publicity-driven. Nobody walks up and hands you cash for warehouse
+// stock on command; customers discover and buy your listings over time based on your
+// storefront reach (CraftBazaar Shop) and publicity (followers/viral boosts). The only manual
+// cash-out is liquidating to a wholesaler below market rate, for players who need cash NOW.
 // ========================
-function sellProduct(productId, qty) {
-  const inv = G.inventory[productId] || 0;
-  if (inv < 1) return;
-  const amount = Math.min(qty || 1, inv);
-  G.inventory[productId] = inv - amount;
-  const val = getProductValue(productId, 'ender3') * amount;
+const BASE_SALE_RATE = 0.045; // expected passive sales per second, per unit of stock, at baseline reach
+const LIQUIDATE_MULT = 0.55;
+
+function tickSales(dt) {
+  if (!G.unlockedAutoSell) return; // requires the CraftBazaar Shop upgrade — no storefront, no customers finding you
+  const followerMult = 1 + Math.min(G.followers, 20000) / 4000; // publicity brings in more browsing customers
   const priceOptBonus = (G.automationOwned.price_opt && G.automationActive.price_opt) ? 1.22 : 1.0;
-  const earned = val * priceOptBonus;
+  const rate = BASE_SALE_RATE * followerMult * activeMult('demandEvent');
+  for (const key of Object.keys(G.inventory)) {
+    const stack = G.inventory[key];
+    if (!stack || stack.qty <= 0) continue;
+    stack.saleAccum = (stack.saleAccum || 0) + rate * dt;
+    let sold = 0;
+    while (stack.saleAccum >= 1 && sold < stack.qty) { stack.saleAccum -= 1; sold++; }
+    if (sold <= 0) continue;
+    stack.qty -= sold;
+    const val = getProductValue(stack.productId, stack.printerTypeId, stack.material, stack.color);
+    const earned = val * sold * priceOptBonus;
+    G.money += earned;
+    G.lifetimeEarned += earned;
+    G.incomeSamples.push({ t: now_t(), v: earned });
+  }
+}
+
+// Sell a stack instantly to a wholesaler, below market rate — the manual "I need cash now" option.
+function liquidateStack(key, qty, event) {
+  const stack = G.inventory[key];
+  if (!stack || stack.qty < 1) return;
+  const amount = Math.min(qty || 1, stack.qty);
+  stack.qty -= amount;
+  const val = getProductValue(stack.productId, stack.printerTypeId, stack.material, stack.color);
+  const priceOptBonus = (G.automationOwned.price_opt && G.automationActive.price_opt) ? 1.22 : 1.0;
+  const earned = val * LIQUIDATE_MULT * priceOptBonus * amount;
   G.money += earned;
   G.lifetimeEarned += earned;
   G.incomeSamples.push({ t: now_t(), v: earned });
@@ -613,65 +765,48 @@ function sellProduct(productId, qty) {
   return earned;
 }
 
-function sellAll() {
+function getProductStock(productId) {
   let total = 0;
-  for (const pid of Object.keys(G.inventory)) {
-    const inv = G.inventory[pid];
-    if (inv > 0) {
-      const v = getProductValue(pid, 'ender3');
-      const priceOptBonus = (G.automationOwned.price_opt && G.automationActive.price_opt) ? 1.22 : 1.0;
-      total += v * inv * priceOptBonus;
-      G.inventory[pid] = 0;
-    }
-  }
-  if (total > 0) {
-    G.money += total;
-    G.lifetimeEarned += total;
-    G.incomeSamples.push({ t: now_t(), v: total });
-    toast(`💰 Sold everything! +$${fmtNum(total)}`, 'success');
-  }
+  for (const stack of Object.values(G.inventory)) if (stack.productId === productId) total += stack.qty;
+  return total;
 }
 
-function autoSellAll() {
-  let total = 0;
-  for (const pid of Object.keys(G.inventory)) {
-    const inv = G.inventory[pid];
-    if (inv > 0) {
-      const v = getProductValue(pid, 'ender3');
-      const priceOptBonus = (G.automationOwned.price_opt && G.automationActive.price_opt) ? 1.22 : 1.0;
-      total += v * inv * priceOptBonus;
-      G.inventory[pid] = 0;
-    }
+// Consumes up to `qty` units of a product across whichever material/colour stacks have it —
+// used by bulk orders, which just want N units of a product, not a specific variant.
+function consumeProductStock(productId, qty) {
+  let remaining = qty;
+  for (const stack of Object.values(G.inventory)) {
+    if (remaining <= 0) break;
+    if (stack.productId !== productId || stack.qty <= 0) continue;
+    const take = Math.min(stack.qty, remaining);
+    stack.qty -= take;
+    remaining -= take;
   }
-  if (total > 0) {
-    G.money += total;
-    G.lifetimeEarned += total;
-    G.incomeSamples.push({ t: now_t(), v: total });
-  }
+  return qty - remaining;
 }
 
 // ========================
 // FINISHING STUDIO (post-processing)
 // ========================
-function sellRaw(productId, qty, event) {
-  const inv = G.rawInventory[productId] || 0;
-  if (inv < 1) return;
-  const amount = Math.min(qty || 1, inv);
-  G.rawInventory[productId] = inv - amount;
-  const earned = getRawSaleValue(productId, 'ender3') * amount;
+function sellRaw(key, qty, event) {
+  const stack = G.rawInventory[key];
+  if (!stack || stack.qty < 1) return;
+  const amount = Math.min(qty || 1, stack.qty);
+  stack.qty -= amount;
+  const earned = getRawSaleValue(stack.productId, stack.printerTypeId, stack.material, stack.color) * amount;
   G.money += earned;
   G.lifetimeEarned += earned;
   G.incomeSamples.push({ t: now_t(), v: earned });
   spawnFloat(`+$${fmtNum(earned)}`, event);
 }
 
-function sendToProcessing(productId) {
-  const inv = G.rawInventory[productId] || 0;
-  if (inv < 1) return;
+function sendToProcessing(key) {
+  const stack = G.rawInventory[key];
+  if (!stack || stack.qty < 1) return;
   const station = G.processingStations.find(s => s.stage === -1);
   if (!station) { toast('All Finishing Studio stations are busy!', 'warning'); return; }
-  G.rawInventory[productId] = inv - 1;
-  station.productId = productId;
+  stack.qty -= 1;
+  station.item = { productId: stack.productId, material: stack.material, color: stack.color, printerTypeId: stack.printerTypeId };
   station.stage = 0;
   station.progress = 0;
 }
@@ -684,18 +819,17 @@ function buyProcessingStation() {
   const cost = baseCost * Math.pow(1.8, owned - 1);
   if (G.money < cost) { toast('Not enough money!', 'error'); return; }
   G.money -= cost;
-  G.processingStations.push({ id: ++stationId, stage:-1, productId:null, progress:0 });
+  G.processingStations.push({ id: ++stationId, stage:-1, item:null, progress:0 });
   toast('🎨 New Finishing Studio station built!', 'success');
 }
 
 function tickProcessing(dt) {
   if (!G.processingUnlocked) {
     // Feature not yet researched — raw items pass straight through to sellable inventory.
-    for (const pid of Object.keys(G.rawInventory)) {
-      const q = G.rawInventory[pid];
-      if (q > 0) {
-        G.inventory[pid] = (G.inventory[pid] || 0) + q;
-        G.rawInventory[pid] = 0;
+    for (const stack of Object.values(G.rawInventory)) {
+      if (stack.qty > 0) {
+        addToInventory(G.inventory, stack.productId, stack.material, stack.color, stack.printerTypeId, stack.qty);
+        stack.qty = 0;
       }
     }
     return;
@@ -708,10 +842,10 @@ function tickProcessing(dt) {
       station.progress = 0;
       station.stage++;
       if (station.stage >= PROCESS_STAGES.length) {
-        G.inventory[station.productId] = (G.inventory[station.productId] || 0) + 1;
+        addToInventory(G.inventory, station.item.productId, station.item.material, station.item.color, station.item.printerTypeId, 1);
         G.totalProcessed++;
         station.stage = -1;
-        station.productId = null;
+        station.item = null;
       }
     }
   }
@@ -719,8 +853,8 @@ function tickProcessing(dt) {
   if (G.staff.finisher && !G.staffUnpaid.finisher) {
     for (const station of G.processingStations) {
       if (station.stage !== -1) continue;
-      const pid = Object.keys(G.rawInventory).find(k => (G.rawInventory[k] || 0) > 0);
-      if (pid) sendToProcessing(pid);
+      const key = Object.keys(G.rawInventory).find(k => (G.rawInventory[k]?.qty || 0) > 0);
+      if (key) sendToProcessing(key);
     }
   }
 }
@@ -871,23 +1005,31 @@ function tickRent(dt) {
 // ========================
 // BUY FILAMENT
 // ========================
-function buyFilament(materialId, grams) {
+function buyFilament(materialId, colorId, grams) {
   const mat = MATERIALS[materialId];
+  const col = COLORS[colorId] || COLORS.black;
   if (!mat) return;
   const jit = (G.automationOwned.jit_logistics && G.automationActive.jit_logistics) ? 0.72 : 1;
   const cost = grams * getMaterialPrice(materialId) * jit;
   if (G.money < cost) { toast('Not enough money!', 'error'); return; }
   G.money -= cost;
-  G.filamentStock[materialId] = (G.filamentStock[materialId] || 0) + grams;
-  toast(`${mat.icon} +${fmtG(grams)} ${mat.name}`, 'info');
+  if (!G.filamentStock[materialId]) G.filamentStock[materialId] = {};
+  G.filamentStock[materialId][col.id] = (G.filamentStock[materialId][col.id] || 0) + grams;
+  toast(`${mat.icon} +${fmtG(grams)} ${col.name} ${mat.name}`, 'info');
 }
 
 function openBulkFilament() {
-  // Quick buy shortcut — tops up whichever material your printers use most
+  // Quick buy shortcut — tops up whichever material+colour combo your printers use most
   const counts = {};
-  for (const p of G.printers) counts[p.material] = (counts[p.material] || 0) + 1;
+  const colorCounts = {};
+  for (const p of G.printers) {
+    counts[p.material] = (counts[p.material] || 0) + 1;
+    colorCounts[p.material] = colorCounts[p.material] || {};
+    colorCounts[p.material][p.color] = (colorCounts[p.material][p.color] || 0) + 1;
+  }
   const topMaterial = Object.keys(counts).sort((a,b) => counts[b]-counts[a])[0] || 'pla';
-  buyFilament(topMaterial, 500);
+  const topColor = (colorCounts[topMaterial] && Object.keys(colorCounts[topMaterial]).sort((a,b) => colorCounts[topMaterial][b]-colorCounts[topMaterial][a])[0]) || 'black';
+  buyFilament(topMaterial, topColor, 500);
 }
 
 // ========================
@@ -957,9 +1099,9 @@ function triggerBulkOrder() {
 
 function acceptBulkOrder() {
   if (!G.pendingBulkOrder) return;
-  const inv = G.inventory[G.pendingBulkOrder.productId] || 0;
+  const inv = getProductStock(G.pendingBulkOrder.productId);
   if (inv >= G.pendingBulkOrder.qty) {
-    G.inventory[G.pendingBulkOrder.productId] -= G.pendingBulkOrder.qty;
+    consumeProductStock(G.pendingBulkOrder.productId, G.pendingBulkOrder.qty);
     G.money += G.pendingBulkOrder.reward;
     G.lifetimeEarned += G.pendingBulkOrder.reward;
     G.incomeSamples.push({ t: now_t(), v: G.pendingBulkOrder.reward });
@@ -1012,6 +1154,76 @@ function declineExhibition() {
 }
 
 // ========================
+// CUSTOM COMMISSIONS (3D modelling upsell)
+// ========================
+function triggerCommission() {
+  const prods = G.unlockedProducts;
+  const pid = prods[Math.floor(Math.random() * prods.length)];
+  const prod = PRODUCTS[pid];
+  const materials = Object.values(MATERIALS);
+  const material = materials[Math.floor(Math.random() * materials.length)];
+  const colors = Object.values(COLORS);
+  const color = colors[Math.floor(Math.random() * colors.length)];
+  const basePrice = Math.round(prod.baseValue * (1.5 + Math.random() * 1.5) * G.valueMult * G.prestigeMult * 100) / 100;
+  const modelFee = Math.round(prod.baseValue * (2 + Math.random() * 3) * 100) / 100;
+  G.pendingCommission = { productId:pid, material:material.id, color:color.id, basePrice, modelFee };
+  document.getElementById('commission-modal-body').innerHTML = `A customer wants a custom <strong>${color.icon} ${color.name} ${material.icon} ${material.name} ${prod.icon} ${prod.name}</strong>.<br>Print-only pays <strong>$${fmtNum(basePrice)}</strong> — offer to design it in-house too and upsell your <strong>3D Modelling Service</strong> for an extra <strong>$${fmtNum(modelFee)}</strong>.`;
+  document.getElementById('commission-modal-reward').textContent = `$${fmtNum(basePrice)} (+$${fmtNum(modelFee)} w/ modelling)`;
+  document.getElementById('commission-modal').classList.add('open');
+}
+
+function acceptCommission(withModelling) {
+  const c = G.pendingCommission;
+  if (!c) return;
+  const reward = withModelling ? c.basePrice + c.modelFee : c.basePrice;
+  G.money += reward;
+  G.lifetimeEarned += reward;
+  G.incomeSamples.push({ t: now_t(), v: reward });
+  G.commissionsCompleted++;
+  toast(`🖥️ Commission fulfilled${withModelling ? ' + 3D modelling upsell' : ''}! +$${fmtNum(reward)}`, 'success');
+  G.pendingCommission = null;
+  document.getElementById('commission-modal').classList.remove('open');
+}
+
+function declineCommission() {
+  G.pendingCommission = null;
+  document.getElementById('commission-modal').classList.remove('open');
+}
+
+// ========================
+// RANDOM EVENTS
+// ========================
+function tickRandomEvents(dt) {
+  G.randomEventTimer += dt;
+  if (G.randomEventTimer < G.randomEventInterval) return;
+  G.randomEventTimer = 0;
+  G.randomEventInterval = 90 + Math.random() * 150;
+  triggerRandomEvent();
+}
+
+function triggerRandomEvent() {
+  const ev = RANDOM_EVENTS[Math.floor(Math.random() * RANDOM_EVENTS.length)];
+  const mins = ev.duration ? Math.round(ev.duration / 60 * 10) / 10 : 0;
+  if (ev.type === 'discount') {
+    G.filamentPriceEventMult = ev.mult;
+    G.filamentPriceEventUntil = G.playTime + ev.duration;
+    toast(ev.msg(mins), 'info');
+  } else if (ev.type === 'failspike') {
+    G.failRateEventMult = ev.mult;
+    G.failRateEventUntil = G.playTime + ev.duration;
+    toast(ev.msg(mins), 'warning');
+  } else if (ev.type === 'followers') {
+    const gained = Math.round(ev.amount[0] + Math.random() * (ev.amount[1] - ev.amount[0]));
+    G.followers += gained;
+    toast(ev.msg(gained), 'success');
+  } else if (ev.type === 'demand') {
+    G.demandEventMult = ev.mult;
+    G.demandEventUntil = G.playTime + ev.duration;
+    toast(ev.msg(mins), ev.mult >= 1 ? 'success' : 'warning');
+  }
+}
+
+// ========================
 // PHASE & PRESTIGE
 // ========================
 function updatePhase() {
@@ -1035,7 +1247,7 @@ function tryPrestige() {
   G.prestigeMult = newMult;
   G.prestigeCount = pCount;
   G.money = 500;
-  G.filamentStock.pla = 800;
+  G.filamentStock.pla.black = 800;
   toast(`⬆️ Scaled Up! ×${newMult.toFixed(1)} earnings multiplier active!`, 'success');
   saveGame(true);
 }
@@ -1128,10 +1340,9 @@ function updateLiveProgress() {
 function renderHUD() {
   el('hud-brand').textContent = G.shopName;
   el('hud-money').textContent = '$' + fmtNum(G.money);
-  const totalFil = Object.values(G.filamentStock).reduce((a,b)=>a+b,0);
-  el('hud-filament').textContent = fmtG(totalFil);
+  el('hud-filament').textContent = fmtG(getTotalFilament());
   el('hud-income').textContent = '$' + fmtNum(G.incomeRate) + '/s';
-  const totalInv = Object.values(G.inventory).reduce((a,b)=>a+b,0);
+  const totalInv = Object.values(G.inventory).reduce((a,s)=>a+s.qty,0);
   el('hud-inv').textContent = totalInv + ' items';
   el('hud-lifetime').textContent = '$' + fmtNum(G.lifetimeEarned);
   const badge = el('phase-badge');
@@ -1179,7 +1390,7 @@ function renderPrinters() {
       const matInfo = MATERIALS[p.material];
       html += `<div class="progress-wrap">
         <div class="progress-label">
-          <span>Printing ${prod.icon} ${prod.name} · ${filCost} ${matInfo.icon}${matInfo.name} → $${fmtNum(getProductValue(p.job, p.typeId))}</span>
+          <span>Printing ${prod.icon} ${prod.name} · ${filCost} ${matInfo.icon}${matInfo.name} → $${fmtNum(getProductValue(p.job, p.typeId, p.material, p.color))}</span>
           <span id="pct-${p.id}">${pct}%</span>
         </div>
         <div class="progress-track">
@@ -1253,26 +1464,39 @@ function renderPrinters() {
     morph(spaceWrap, shtml);
   }
 
-  // Filament / material section
+  // Filament / material section — stock is tracked per colour, so buying picks a colour first
   const filDisplay = el('fil-stock-display');
-  const totalFil = Object.values(G.filamentStock).reduce((a,b)=>a+b,0);
-  filDisplay.textContent = fmtG(totalFil);
+  filDisplay.textContent = fmtG(getTotalFilament());
   const filBtns = el('fil-buttons');
   const amounts = [100, 500, 2000];
   const jitActive = G.automationOwned.jit_logistics && G.automationActive.jit_logistics;
   morph(filBtns, Object.values(MATERIALS).map(mat => {
-    const stock = G.filamentStock[mat.id] || 0;
+    const stockByColor = G.filamentStock[mat.id] || {};
+    const totalStock = Object.values(stockByColor).reduce((a,b)=>a+b,0);
+    const breakdown = Object.entries(stockByColor).filter(([,g])=>g>0).map(([cid,g])=>`${COLORS[cid]?.icon||''}${fmtG(g)}`).join(' · ');
+    const pickedColor = G.filamentColorPick[mat.id] || 'black';
     const buttons = amounts.map(g => {
       const cost = g * getMaterialPrice(mat.id) * (jitActive ? 0.72 : 1);
       const canAfford = G.money >= cost;
-      return `<button class="btn btn-buy btn-xs" onclick="buyFilament('${mat.id}',${g})" ${!canAfford?'disabled':''}>${fmtG(g)} — $${fmtNum(cost)}</button>`;
+      return `<button class="btn btn-buy btn-xs" onclick="buyFilament('${mat.id}', G.filamentColorPick['${mat.id}']||'black', ${g})" ${!canAfford?'disabled':''}>${fmtG(g)} — $${fmtNum(cost)}</button>`;
     }).join('');
-    return `<div class="card" style="min-width:220px">
-      <div class="card-header"><span class="card-icon">${mat.icon}</span><div><div class="card-title" style="font-size:14px">${mat.name}</div><div class="card-sub">${fmtG(stock)} in stock</div></div></div>
+    return `<div class="card" style="min-width:240px">
+      <div class="card-header"><span class="card-icon">${mat.icon}</span><div><div class="card-title" style="font-size:14px">${mat.name}</div><div class="card-sub">${fmtG(totalStock)} total in stock</div></div></div>
       <div class="card-body" style="margin-bottom:8px">${mat.desc}${jitActive ? ' (−28% JIT)' : ''}</div>
+      ${breakdown ? `<div class="tip" style="margin-bottom:6px">${breakdown}</div>` : ''}
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+        <label style="font-size:11px;color:var(--text2)">Buy colour:</label>
+        <select class="sel" onchange="setFilamentColorPick('${mat.id}', this.value)">
+          ${Object.values(COLORS).map(c => `<option value="${c.id}" ${pickedColor===c.id?'selected':''}>${c.icon} ${c.name}</option>`).join('')}
+        </select>
+      </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">${buttons}</div>
     </div>`;
   }).join(''));
+}
+
+function setFilamentColorPick(materialId, colorId) {
+  G.filamentColorPick[materialId] = colorId;
 }
 
 function setPrinterJob(printerId, productId) {
@@ -1299,31 +1523,42 @@ function renderProducts() {
     tickerWrap.innerHTML = `<div class="order-ticker"><div class="ticker-dot"></div>Live market active · Bulk orders enabled · Dynamic pricing ${G.automationOwned.price_opt && G.automationActive.price_opt ? 'ON (+22%)' : 'OFF'}</div>`;
   } else tickerWrap.innerHTML = '';
 
-  // Sell grid
+  // Sell grid — inventory is grouped by product, but each material/colour/printer combo is its
+  // own stack with its own price. Customers buy these off automatically over time (based on your
+  // storefront + publicity); LIQUIDATE cashes a stack out immediately to a wholesaler at a discount.
   const sellGrid = el('sell-grid');
+  const byProduct = {};
+  for (const [key, stack] of Object.entries(G.inventory)) {
+    if (!stack || stack.qty <= 0) continue;
+    (byProduct[stack.productId] = byProduct[stack.productId] || []).push({ key, ...stack });
+  }
   let sellHtml = '';
   for (const pid of G.unlockedProducts) {
+    const stacks = byProduct[pid];
+    if (!stacks || !stacks.length) continue;
     const prod = PRODUCTS[pid];
-    const inv = G.inventory[pid] || 0;
-    if (inv === 0) continue;
-    const val = getProductValue(pid, 'ender3');
+    const totalQty = stacks.reduce((a,s)=>a+s.qty, 0);
     sellHtml += `<div class="card">
       <div class="card-header">
         <span class="card-icon">${prod.icon}</span>
-        <div><div class="card-title">${prod.name}</div><div class="card-sub">$${fmtNum(val)} each</div></div>
+        <div><div class="card-title">${prod.name}</div><div class="card-sub">${totalQty} in stock across ${stacks.length} variant${stacks.length===1?'':'s'}</div></div>
       </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <div class="inv-badge">📦 ${inv} in stock</div>
-        <div style="font-family:var(--font-mono);font-size:13px;color:var(--gold)">Value: $${fmtNum(val*inv)}</div>
-      </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <button class="btn btn-green btn-sm" onclick="sellProduct('${pid}',1,event)">SELL 1</button>
-        <button class="btn btn-green btn-sm" onclick="sellProduct('${pid}',10,event)" ${inv<10?'disabled':''}>SELL 10</button>
-        <button class="btn btn-primary btn-sm" onclick="sellProductAll('${pid}',event)">SELL ALL</button>
-      </div>
-    </div>`;
+      <div class="stack-list">`;
+    for (const s of stacks) {
+      const mat = MATERIALS[s.material], col = COLORS[s.color], pt = PRINTER_TYPES[s.printerTypeId];
+      const val = getProductValue(pid, s.printerTypeId, s.material, s.color);
+      sellHtml += `<div class="stack-row">
+        <span class="stack-desc">${mat?.icon||''}${mat?.name||'?'} · ${col?.icon||''}${col?.name||'?'} · ${pt?.name||'?'}</span>
+        <span class="stack-qty">${s.qty}× @ $${fmtNum(val)}</span>
+        <span class="stack-actions">
+          <button class="btn btn-ghost btn-xs" onclick="liquidateStack('${s.key}',1,event)">LIQUIDATE 1</button>
+          <button class="btn btn-ghost btn-xs" onclick="liquidateStack('${s.key}',${s.qty},event)">LIQUIDATE ALL</button>
+        </span>
+      </div>`;
+    }
+    sellHtml += `</div></div>`;
   }
-  if (!sellHtml) sellHtml = '<div class="empty-state">No inventory to sell.<br>Start printing!</div>';
+  if (!sellHtml) sellHtml = `<div class="empty-state">No inventory yet — start printing! Every stack can be LIQUIDATED instantly for ${(LIQUIDATE_MULT*100).toFixed(0)}% value right away — that's your cash flow before you've researched anything. Once you research CraftBazaar Shop (Business tree), customers also start buying stock automatically on their own, based on demand and your publicity.</div>`;
   morph(sellGrid, sellHtml);
 
   // Product catalogue — grouped by base category (each has 4 variant tiers) so 100
@@ -1332,14 +1567,14 @@ function renderProducts() {
   function productCardHtml(pid) {
     const prod = PRODUCTS[pid];
     const unlocked = G.unlockedProducts.includes(pid);
-    const val = unlocked ? getProductValue(pid, 'ender3') : prod.baseValue;
-    const inv = G.inventory[pid] || 0;
+    const val = unlocked ? getBaseDisplayValue(pid) : prod.baseValue;
+    const inv = getProductStock(pid);
     const filCost = fmtG(prod.filament * G.filamentMult);
     return `<div class="product-card ${unlocked ? '' : 'locked'}">
       <div class="product-color-bar" style="background:${prod.color}"></div>
       <div class="product-icon">${prod.icon}</div>
       <div class="product-name">${prod.name}</div>
-      <div class="product-value">$${fmtNum(val)}</div>
+      <div class="product-value">~$${fmtNum(val)}</div>
       <div class="product-stats">
         <div class="product-stat-row">🧵 ${filCost}</div>
         <div class="product-stat-row">⏱ ${fmtTime(prod.printTime)}</div>
@@ -1366,13 +1601,6 @@ function renderProducts() {
     html += `</div>`;
   }
   morph(grid, html);
-}
-
-function sellProductAll(pid, event) {
-  const inv = G.inventory[pid] || 0;
-  if (inv > 0) {
-    sellProduct(pid, inv, event);
-  }
 }
 
 function renderUpgrades() {
@@ -1478,9 +1706,9 @@ function renderAutomation() {
           <div class="setting-row"><span>Resupply threshold</span><span class="setting-val">600g</span></div>
           <div class="setting-row"><span>Buy amount</span><span class="setting-val">1,000g</span></div>
         </div>` : ''}
-        ${owned && aid === 'auto_sell' ? `
+        ${owned && aid === 'auto_liquidate' ? `
         <div class="auto-settings">
-          <div class="setting-row"><span>Sell interval</span><span class="setting-val">30s</span></div>
+          <div class="setting-row"><span>Overflow threshold</span><span class="setting-val">50 units/variant</span></div>
           <div class="setting-row"><span>Price opt bonus</span><span class="setting-val">${G.automationOwned.price_opt ? '+22%' : 'none'}</span></div>
         </div>` : ''}
       </div>`;
@@ -1504,7 +1732,7 @@ function renderStudio() {
     for (const station of G.processingStations) {
       const busy = station.stage !== -1;
       html += `<div class="card ${busy ? 'highlight' : ''}">
-        <div class="card-header"><span class="card-icon">🎨</span><div><div class="card-title">Station #${station.id}</div><div class="card-sub">${busy ? PRODUCTS[station.productId].name : 'Idle'}</div></div></div>`;
+        <div class="card-header"><span class="card-icon">🎨</span><div><div class="card-title">Station #${station.id}</div><div class="card-sub">${busy ? PRODUCTS[station.item.productId].name : 'Idle'}</div></div></div>`;
       if (busy) {
         const stageDef = PROCESS_STAGES[station.stage];
         html += `<div class="progress-label"><span>${stageDef.icon} ${stageDef.name}</span><span id="spct-${station.id}">${Math.round(station.progress)}%</span></div>
@@ -1524,19 +1752,19 @@ function renderStudio() {
     }
     html += `</div>`;
 
-    // Raw inventory
+    // Raw inventory — each material/colour/printer combo is its own stack
     html += `<div class="cat-header"><div class="cat-label">📦 RAW INVENTORY</div><div class="cat-line"></div></div><div class="grid-3">`;
     let anyRaw = false;
-    for (const pid of Object.keys(G.rawInventory)) {
-      const qty = G.rawInventory[pid] || 0;
-      if (qty < 1) continue;
+    for (const [key, stack] of Object.entries(G.rawInventory)) {
+      if (!stack || stack.qty < 1) continue;
       anyRaw = true;
-      const prod = PRODUCTS[pid];
+      const prod = PRODUCTS[stack.productId];
+      const mat = MATERIALS[stack.material], col = COLORS[stack.color];
       html += `<div class="card">
-        <div class="card-header"><span class="card-icon">${prod.icon}</span><div><div class="card-title">${prod.name}</div><div class="card-sub">${qty} raw · sell @ $${fmtNum(getRawSaleValue(pid,'ender3'))}</div></div></div>
+        <div class="card-header"><span class="card-icon">${prod.icon}</span><div><div class="card-title">${prod.name}</div><div class="card-sub">${mat?.icon||''}${mat?.name||''} · ${col?.icon||''}${col?.name||''} · ${stack.qty} raw · sell @ $${fmtNum(getRawSaleValue(stack.productId, stack.printerTypeId, stack.material, stack.color))}</div></div></div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn btn-cyan btn-sm" onclick="sendToProcessing('${pid}')">🎨 PROCESS</button>
-          <button class="btn btn-ghost btn-sm" onclick="sellRaw('${pid}',1,event)">SELL RAW</button>
+          <button class="btn btn-cyan btn-sm" onclick="sendToProcessing('${key}')">🎨 PROCESS</button>
+          <button class="btn btn-ghost btn-sm" onclick="sellRaw('${key}',1,event)">SELL RAW</button>
         </div>
       </div>`;
     }
@@ -1613,6 +1841,9 @@ function renderStats() {
     <div class="stat-card"><div class="stat-card-lbl">Scale Ups</div><div class="stat-card-val" style="color:var(--purple)">${G.prestigeCount}</div></div>
     <div class="stat-card"><div class="stat-card-lbl">Items Finished</div><div class="stat-card-val" style="color:var(--purple)">${G.totalProcessed.toLocaleString()}</div></div>
     <div class="stat-card"><div class="stat-card-lbl">Followers</div><div class="stat-card-val" style="color:var(--blue)">${G.followers.toLocaleString()}</div></div>
+    <div class="stat-card"><div class="stat-card-lbl">Successful Print Mass</div><div class="stat-card-val" style="color:var(--green)">${fmtG(G.totalMassSuccess)}</div></div>
+    <div class="stat-card"><div class="stat-card-lbl">Failed Print Mass</div><div class="stat-card-val" style="color:var(--red)">${fmtG(G.totalMassFailed)}</div></div>
+    <div class="stat-card"><div class="stat-card-lbl">Commissions Fulfilled</div><div class="stat-card-val" style="color:var(--accent2)">${G.commissionsCompleted.toLocaleString()}</div></div>
   </div>
   <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:20px">
     <div style="font-family:var(--font-title);font-size:12px;color:var(--text2);letter-spacing:.1em;margin-bottom:8px">BUSINESS PHASE</div>
@@ -1733,14 +1964,14 @@ function importSaveFromPrompt() {
 // DEBUG CONSOLE
 // ========================
 const DEBUG_CODES = {
-  'FILLAMENT':  ()=>{ Object.keys(MATERIALS).forEach(id=>{ G.filamentStock[id]+=10000; }); dbLog('Added 10kg of every material', 'ok') },
+  'FILLAMENT':  ()=>{ Object.keys(MATERIALS).forEach(id=>{ Object.keys(COLORS).forEach(cid=>{ G.filamentStock[id][cid]+=10000; }); }); dbLog('Added 10kg of every material/colour', 'ok') },
   'MONEYBAGS':  ()=>{ G.money += 10000; dbLog('Added $10,000', 'ok') },
   'FATSTACK':   ()=>{ G.money += 1000000; G.lifetimeEarned += 1000000; dbLog('Added $1,000,000', 'ok') },
   'SPEEDRUN':   ()=>{ G.speedMult *= 5; setTimeout(()=>{ G.speedMult /= 5 }, 60000); dbLog('5× speed for 60s!', 'ok') },
   'UNLOCKALL':  ()=>{ G.unlockedProducts = Object.keys(PRODUCTS); dbLog('All products unlocked!', 'ok') },
   'RESEARCHALL':()=>{ Object.entries(UPGRADES).forEach(([id,u])=>{ if(!G.upgrades[id]){ G.upgrades[id]=true; u.fn(G); } }); dbLog('All upgrades applied!', 'ok') },
   'AUTOALL':    ()=>{ Object.keys(AUTOMATION_ITEMS).forEach(id=>{ G.automationOwned[id]=true; G.automationActive[id]=true; }); G.unlockedAutoSell=true; G.bulkOrdersEnabled=true; dbLog('All automation unlocked!', 'ok') },
-  'GODMODE':    ()=>{ G.money+=999999; Object.keys(MATERIALS).forEach(id=>{ G.filamentStock[id]+=99999; }); G.speedMult*=10; Object.entries(UPGRADES).forEach(([id,u])=>{ if(!G.upgrades[id]){ G.upgrades[id]=true; u.fn(G); } }); G.unlockedProducts=Object.keys(PRODUCTS); Object.keys(AUTOMATION_ITEMS).forEach(id=>{ G.automationOwned[id]=true; G.automationActive[id]=true; }); G.followers+=1000; G.timelapses+=5; dbLog('GOD MODE ENABLED 🔥', 'ok') },
+  'GODMODE':    ()=>{ G.money+=999999; Object.keys(MATERIALS).forEach(id=>{ Object.keys(COLORS).forEach(cid=>{ G.filamentStock[id][cid]+=99999; }); }); G.speedMult*=10; Object.entries(UPGRADES).forEach(([id,u])=>{ if(!G.upgrades[id]){ G.upgrades[id]=true; u.fn(G); } }); G.unlockedProducts=Object.keys(PRODUCTS); Object.keys(AUTOMATION_ITEMS).forEach(id=>{ G.automationOwned[id]=true; G.automationActive[id]=true; }); G.followers+=1000; G.timelapses+=5; dbLog('GOD MODE ENABLED 🔥', 'ok') },
   'PRINTFARM':  ()=>{ ['ender3','bambu_a1','bambu_x1c'].forEach(t=>{ if(G.printers.length<getRoomCapacity()) buyPrinter(t) }); dbLog('Print farm spawned!', 'ok') },
   'PHASE5':     ()=>{ G.lifetimeEarned = 2000000; dbLog('Phase set to EMPIRE', 'ok') },
   'PRESTIGE1':  ()=>{ G.prestigeMult = 1.5; G.prestigeCount = 1; dbLog('Prestige 1 applied', 'ok') },
@@ -1994,7 +2225,11 @@ function runBootLoadingBar() {
   const duration = 1200;
   const start = performance.now();
   function frame(now) {
-    const pct = Math.min(100, ((now - start) / duration) * 100);
+    // Clamp to 0 — the timestamp requestAnimationFrame hands the callback can, on the very
+    // first frame, be marginally earlier than the performance.now() read that set `start`
+    // (a real browser scheduling quirk), producing a negative pct that would otherwise fail
+    // to match BOOT_MESSAGES' 0% threshold and crash on `msg[1]` below.
+    const pct = Math.max(0, Math.min(100, ((now - start) / duration) * 100));
     fill.style.width = pct + '%';
     const msg = BOOT_MESSAGES.filter(([at]) => pct >= at).pop();
     label.textContent = `${msg[1]} ${Math.floor(pct)}%`;
