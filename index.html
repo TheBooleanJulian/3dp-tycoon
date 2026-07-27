@@ -30,11 +30,16 @@
   </div>
 </div>
 
+<div id="app-scale-wrap">
+
 <!-- HUD -->
 <header id="hud">
   <div class="hud-brand">
     <div class="brand-hex">⬡</div>
-    <div class="brand-name" id="hud-brand">3DP TYCOON</div>
+    <div class="brand-titles">
+      <div class="brand-game-name">3DP TYCOON</div>
+      <div class="brand-name" id="hud-brand">MY PRINT SHOP</div>
+    </div>
     <div class="phase-badge phase-hobbyist" id="phase-badge">HOBBYIST</div>
   </div>
   <div class="hud-divider"></div>
@@ -61,13 +66,12 @@
     </div>
   </div>
   <div class="hud-right">
-    <button class="btn-hud" onclick="openBulkFilament()">+ FILAMENT</button>
-    <button class="btn-hud" onclick="saveGame()" title="Saved locally in this browser only — no cloud sync. Use EXPORT/IMPORT to back up or move your save.">💾 SAVE</button>
-    <button class="btn-hud" onclick="exportSave()" title="Copy a portable save code to your clipboard — your only backup, since saves don't sync to any server">⬆ EXPORT</button>
-    <button class="btn-hud" onclick="importSaveFromPrompt()" title="Paste a save code to restore or transfer a save">⬇ IMPORT</button>
-    <button class="btn-hud" onclick="resetConfirm()">⚙</button>
+    <button class="btn-hud" onclick="openSettings()" title="Settings — save, export/import, theme, UI scale">⚙ SETTINGS</button>
   </div>
 </header>
+
+<!-- Buffs/Debuffs -->
+<div id="hud-buffs"></div>
 
 <!-- Tabs -->
 <nav id="tabs">
@@ -79,23 +83,34 @@
   <button class="tab" onclick="switchTab('stats')" id="tab-btn-stats"><span class="tab-icon">📊</span>STATS</button>
 </nav>
 
+<div id="main-layout">
+
+<!-- Always-visible printer status sidebar -->
+<aside id="printer-sidebar">
+  <div class="sidebar-title">🖨️ ACTIVE PRINTERS</div>
+  <div id="sidebar-printers-list"></div>
+</aside>
+
 <div id="content">
 
   <!-- PRINTERS TAB -->
   <div class="tab-panel active" id="tab-printers">
     <div id="active-printers-section"></div>
     <div class="section-gap">
-      <div class="section-hdr"><h2>BUY PRINTERS</h2><div class="hdr-line"></div></div>
-      <div class="grid-3" id="buy-printers-grid"></div>
-    </div>
-    <div class="section-gap">
       <div class="filament-section">
         <div class="fil-header">
           <div class="fil-title">🧵 Filament Stock</div>
-          <div class="fil-stock" id="fil-stock-display">500g</div>
+          <div class="fil-header-right">
+            <div class="fil-spool" id="fil-spool-total"></div>
+            <div class="fil-stock" id="fil-stock-display">500g</div>
+          </div>
         </div>
         <div class="fil-buttons" id="fil-buttons"></div>
       </div>
+    </div>
+    <div class="section-gap">
+      <div class="section-hdr"><h2>BUY PRINTERS</h2><div class="hdr-line"></div></div>
+      <div class="grid-3" id="buy-printers-grid"></div>
     </div>
     <div class="section-gap" id="workshop-space-section"></div>
   </div>
@@ -131,6 +146,10 @@
   </div>
 
 </div>
+
+</div><!-- /#main-layout -->
+
+</div><!-- /#app-scale-wrap -->
 
 <!-- Toasts -->
 <div id="toasts"></div>
@@ -186,6 +205,59 @@
       <button class="btn btn-green" onclick="acceptCommission(true)">🖥️ ACCEPT + MODELLING UPSELL</button>
       <button class="btn btn-primary" onclick="acceptCommission(false)">✅ ACCEPT (PRINT ONLY)</button>
       <button class="btn btn-ghost" onclick="declineCommission()">❌ DECLINE</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div id="settings-modal">
+  <div class="modal-box settings-box">
+    <div class="modal-title">⚙ SETTINGS</div>
+
+    <div class="settings-row">
+      <span class="settings-label">Theme</span>
+      <div class="theme-toggle">
+        <button class="btn btn-ghost btn-sm" id="theme-btn-dark" onclick="setTheme('dark')">🌙 Dark</button>
+        <button class="btn btn-ghost btn-sm" id="theme-btn-light" onclick="setTheme('light')">☀️ Light</button>
+      </div>
+    </div>
+
+    <div class="settings-row">
+      <span class="settings-label">UI Scale</span>
+      <div class="settings-scale-control">
+        <input type="range" id="ui-scale-slider" min="80" max="150" step="5" oninput="setUIScale(this.value)">
+        <span id="ui-scale-label" class="settings-scale-label">100%</span>
+      </div>
+    </div>
+
+    <div class="settings-divider"></div>
+
+    <div class="settings-row-actions">
+      <button class="btn-hud" onclick="saveGame()" title="Saved locally in this browser only — no cloud sync. Use EXPORT/IMPORT to back up or move your save.">💾 SAVE (LOCAL BROWSER)</button>
+    </div>
+    <div class="settings-row-actions">
+      <button class="btn-hud" onclick="exportSave()" title="Copy a portable save code to your clipboard — your only backup, since saves don't sync to any server">⬆ EXPORT</button>
+      <button class="btn-hud" onclick="importSaveFromPrompt()" title="Paste a save code to restore or transfer a save">⬇ IMPORT</button>
+    </div>
+
+    <div class="settings-divider"></div>
+
+    <div class="settings-row-actions">
+      <button class="btn btn-stop btn-sm" onclick="resetConfirm()">⚠ RESET GAME</button>
+    </div>
+
+    <div class="settings-divider"></div>
+
+    <div class="settings-row-actions">
+      <button class="btn-hud" onclick="toggleChangelog()">📋 CHANGELOG</button>
+      <a class="btn-hud" href="https://github.com/TheBooleanJulian/3dp-tycoon" target="_blank" rel="noopener">🔗 GITHUB REPO</a>
+    </div>
+    <div id="changelog-box" class="changelog-box"></div>
+
+    <div class="settings-credit">Built by <a href="https://github.com/TheBooleanJulian" target="_blank" rel="noopener">@TheBooleanJulian</a></div>
+
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeSettings()">CLOSE</button>
     </div>
   </div>
 </div>

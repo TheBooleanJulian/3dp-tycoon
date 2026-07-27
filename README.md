@@ -8,7 +8,7 @@
 
 An idle incremental business simulator where you grow a home-based 3D printing operation into a full manufacturing empire.
 
-![Version](https://img.shields.io/badge/version-1.7.1-00D4C8)
+![Version](https://img.shields.io/badge/version-1.9.0-00D4C8)
 ![JavaScript](https://img.shields.io/badge/-JavaScript-F7DF1E?logo=javascript&logoColor=black)
 ![Node.js](https://img.shields.io/badge/-Node.js-339933?logo=node.js&logoColor=white)
 ![License](https://img.shields.io/badge/license-AGPLv3%20%2B%20Commercial-00D4C8.svg)
@@ -44,7 +44,7 @@ An idle incremental business simulator where you grow a home-based 3D printing o
 
 - **10 distinct printers** spanning free starter clones to $120k metal SLS machines, each with unique speed, quality, cost, and fail-rate tradeoffs
 - **100 products** — 20 base categories (cheap novelties to aerospace components), each with 4 variant tiers (Mini, Glow-in-the-Dark, Deluxe, Custom Engraved), so almost no two products share the same stats
-- **8 filament/resin materials and 9 colours, tracked discretely** — every material+colour combo is its own physical stock, and every printed batch keeps its own material/colour/printer pricing instead of being blended into one shop-wide average
+- **8 filament/resin materials and 11 colours, tracked discretely** — every material+colour combo is its own physical stock (shown as a simplified spool graphic that drains as you print), and every printed batch keeps its own material/colour/printer pricing instead of being blended into one shop-wide average
 - **Passive, demand-driven sales** — once you've researched CraftBazaar Shop, customers discover and buy your listings automatically over time, scaled by your storefront reach and publicity. LIQUIDATE cashes a stack out instantly to a wholesaler below market rate whenever you need cash — including right at the start, before any upgrades, so there's always a way to turn prints into money
 - **Workshop space system** — start with 1 printer slot, expand via shelving upgrades then rent offices, warehouses, and mega factories with ongoing rent costs
 - **Finishing Studio** — post-processing (sanding, smoothing, painting) unlocked by research for full product value
@@ -56,6 +56,11 @@ An idle incremental business simulator where you grow a home-based 3D printing o
 - **Achievements** — unlock tracking across prints, earnings, followers, and more
 - **Prestige** — reset for a permanent earnings multiplier and replay with a head start
 - **Save export/import** — clipboard-based base64 save codes alongside `localStorage` auto-save
+- **⚙ Settings menu** — save/export/import, a light/dark theme toggle, a UI scale slider, an in-game changelog, and a GitHub link, all persisted locally
+- **Buffs & debuffs bar** — every active timed effect (viral/publicity boosts, random-event swings) shown live under the HUD with a countdown, instead of only appearing as a toast
+- **Node-based tech tree** — Upgrades are laid out as connected nodes that branch rightward by prerequisite, across 34 research nodes in 5 trees
+- **Always-visible printer sidebar** — every printer's current job and print progress, visible no matter which tab you're on
+- **Scrolling customer feed** — a cosmetic marquee of customer comments/reviews under Marketing
 
 ## 📸 Screenshots
 
@@ -112,7 +117,7 @@ Each printer is loaded with its own **material** and **colour** — swap them an
 | Standard Resin | Resin | +150% | +15% | Baseline |
 | Tough Resin | Resin | +250% | +30% | More reliable |
 
-Colour is purely cosmetic (Black, White, Brown, Red, Orange, Yellow, Green, Blue, Purple) but still nudges sale value a little. Filament stock is tracked **per material and per colour** — a printer loaded with red PETG draws down your red PETG spool specifically, not just "PETG" in general, so buy the colours you actually intend to print.
+Colour is purely cosmetic (Black, White, Brown, Red, Orange, Yellow, Green, Blue, Purple, Pink, Cyan) but still nudges sale value a little. Filament stock is tracked **per material and per colour** — a printer loaded with red PETG draws down your red PETG spool specifically, not just "PETG" in general, so buy the colours you actually intend to print. One exception: **Carbon Fiber Composite is only produced in black**, matching how it's actually sold — the colour picker on both the printer card and the filament shop locks to black for that material.
 
 ---
 
@@ -271,10 +276,10 @@ Push to GitHub and enable Pages for the `main` branch.
 
 - **Auto-saves** every 60 seconds
 - **Auto-saves** on tab close / page hide
-- Manual save with `Ctrl+S` or the 💾 button
+- Manual save with `Ctrl+S`, or **💾 SAVE** in the ⚙ Settings menu (HUD)
 - Save data stored in the browser's `localStorage` — **there is no server or cloud backend**, so saves never leave the browser they were created in, including on the [live site](https://3dp-tycoon.thebooleanjulian.dev/). Cloud sync isn't implemented yet (see Future Roadmap below).
 - ⚠️ **No cross-device/cross-browser sync.** A different browser, a different device, a private/incognito window, or clearing site data will not see an existing save. Deploying new versions of the game is safe (it doesn't touch anyone's `localStorage`), but switching domains/ports, or the player clearing their browser data, will orphan it.
-- Use the **⬆ EXPORT** button (or `EXPORT` debug code) to copy a portable base64 save code to your clipboard, and **⬇ IMPORT** (HUD button, splash-screen button, or `IMPORT` debug code) to restore it — this is the only way to back up a save or move it to another browser/device
+- Use **⬆ EXPORT** (⚙ Settings menu, or the `EXPORT` debug code) to copy a portable base64 save code to your clipboard, and **⬇ IMPORT** (⚙ Settings menu, splash-screen button, or `IMPORT` debug code) to restore it — this is the only way to back up a save or move it to another browser/device
 
 ---
 
@@ -282,8 +287,26 @@ Push to GitHub and enable Pages for the `main` branch.
 
 Versioning follows `MAJOR.MINOR.PATCH`: **major** bumps for breaking/structural changes (save format, core loop rework), **minor** bumps for new features (printers, products, systems), **patch** bumps for balance tweaks and bug fixes.
 
+### v1.9.0
+- Upgrades tab rebuilt as a node-based tech tree: each category is now a horizontally-scrolling lane of nodes connected by prerequisite lines that branch rightward, instead of a flat card grid
+- Added 14 new upgrade nodes (34 total, up from 20) across all five trees, each branching off an existing node
+- Filament Stock section moved above Buy Printers, and now shows a simplified coloured "spool" graphic (overall + per material) that visibly drains as stock depletes and refills when you buy more
+- Added Pink and Cyan filament colours; Carbon Fiber Composite is now black-only (`allowedColors`), since that's how the real material is actually sold — printers and the filament shop both enforce it, and old saves are migrated to a valid colour automatically
+- Added an always-visible sidebar (every tab) showing each printer's live print status and progress
+- Floating value text now appears for every purchase too (red `-$`), not just sales (green `+$`), including passive/automatic sales
+- Added a scrolling customer comments/reviews feed under the Marketing section (cosmetic flavour)
+- Settings menu now includes an in-game changelog, a GitHub repo link, and a "Built by" credit
+- Added a fixed "3DP TYCOON" game title next to your shop's own name in the HUD
+
+### v1.8.0
+- Added a live buffs/debuffs bar under the HUD showing every active timed effect (publicity/viral boost, and the three random-event multipliers) with an icon, description, and countdown, instead of only surfacing them as a one-off toast
+- Removed the "+ FILAMENT" HUD quick-buy button — filament is bought from the per-material grid in the Printers tab, which already supports choosing a colour
+- Moved SAVE, EXPORT, and IMPORT (and Reset Game) out of the HUD into a new ⚙ Settings menu
+- Added a light/dark theme toggle and a UI scale slider (80–150%) to the new Settings menu, both persisted in `localStorage` independent of your save
+
 ### v1.7.1
 - Lowered CraftBazaar Shop's cost ($150 → $75) so it's reachable with roughly 20 LIQUIDATE sales on top of starting cash, rather than requiring an extended liquidation grind first
+- Fixed a rare boot-loading-bar crash: on its first animation frame, the timestamp `requestAnimationFrame` hands the callback could be marginally earlier than the `performance.now()` read that set the bar's start time (a real browser scheduling quirk), throwing and permanently freezing the splash screen before "START PRINTING" ever appeared
 
 ### v1.7.0
 - **Fixed:** filament colour was cosmetic-only — a printer loaded with "red" could print using any colour's stock as long as the material had grams. Filament stock is now tracked per material *and* per colour; printers only draw down the specific colour they're loaded with, and you pick a colour when buying

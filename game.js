@@ -1,7 +1,7 @@
 // ========================
 // GAME DATA
 // ========================
-const VERSION = '1.7.1';
+const VERSION = '1.9.0';
 
 // PRODUCT_BASES are the 20 "common" items — the plain, baseline version of each category.
 // Each one also spawns 4 variant tiers (see PRODUCT_VARIANTS below) so that almost no two
@@ -73,23 +73,32 @@ const MATERIALS = {
   abs:          { id:'abs',          name:'ABS',                    icon:'🧵', matClass:'filament', costMult:1.15,qualityMult:1.03, failMod:1.15, desc:'Heat-resistant but warps more.' },
   tpu:          { id:'tpu',          name:'TPU (Flexible)',         icon:'🧵', matClass:'filament', costMult:1.8, qualityMult:1.12, failMod:1.25, desc:'Flexible, trickier to print.' },
   nylon:        { id:'nylon',        name:'Nylon',                  icon:'🧵', matClass:'filament', costMult:2.2, qualityMult:1.2,  failMod:1.2,  desc:'Strong engineering material, absorbs moisture.' },
-  carbon_fiber: { id:'carbon_fiber', name:'Carbon Fiber Composite', icon:'🧵', matClass:'filament', costMult:3.0, qualityMult:1.35, failMod:1.1,  desc:'Premium strength-to-weight composite.' },
+  carbon_fiber: { id:'carbon_fiber', name:'Carbon Fiber Composite', icon:'🧵', matClass:'filament', costMult:3.0, qualityMult:1.35, failMod:1.1,  desc:'Premium strength-to-weight composite. Only produced in black.', allowedColors:['black'] },
   resin_std:    { id:'resin_std',    name:'Standard Resin',         icon:'💧', matClass:'resin',    costMult:2.5, qualityMult:1.15, failMod:1.0,  desc:'Standard resin for detailed prints.' },
   resin_tough:  { id:'resin_tough',  name:'Tough Resin',            icon:'💧', matClass:'resin',    costMult:3.5, qualityMult:1.3,  failMod:0.9,  desc:'Engineering-grade tough resin.' },
 };
 
-// Cosmetic choice — bonus is a small fleet-averaged value multiplier, same mechanism as fleet quality
+// Cosmetic choice — bonus is a small fleet-averaged value multiplier, same mechanism as fleet quality.
+// `hex` is used only by the filament-spool graphic, not by any gameplay calculation.
 const COLORS = {
-  black:  { id:'black',  name:'Black',  icon:'⚫', bonus:1.00 },
-  white:  { id:'white',  name:'White',  icon:'⚪', bonus:1.00 },
-  brown:  { id:'brown',  name:'Brown',  icon:'🟤', bonus:0.98 },
-  red:    { id:'red',    name:'Red',    icon:'🔴', bonus:1.02 },
-  orange: { id:'orange', name:'Orange', icon:'🟠', bonus:1.03 },
-  yellow: { id:'yellow', name:'Yellow', icon:'🟡', bonus:1.01 },
-  green:  { id:'green',  name:'Green',  icon:'🟢', bonus:1.01 },
-  blue:   { id:'blue',   name:'Blue',   icon:'🔵', bonus:1.02 },
-  purple: { id:'purple', name:'Purple', icon:'🟣', bonus:1.05 },
+  black:  { id:'black',  name:'Black',  icon:'⚫', bonus:1.00, hex:'#2b2b33' },
+  white:  { id:'white',  name:'White',  icon:'⚪', bonus:1.00, hex:'#f2f2f5' },
+  brown:  { id:'brown',  name:'Brown',  icon:'🟤', bonus:0.98, hex:'#8b5a2b' },
+  red:    { id:'red',    name:'Red',    icon:'🔴', bonus:1.02, hex:'#e03e3e' },
+  orange: { id:'orange', name:'Orange', icon:'🟠', bonus:1.03, hex:'#ff8c1a' },
+  yellow: { id:'yellow', name:'Yellow', icon:'🟡', bonus:1.01, hex:'#f7d31c' },
+  green:  { id:'green',  name:'Green',  icon:'🟢', bonus:1.01, hex:'#2ecc71' },
+  blue:   { id:'blue',   name:'Blue',   icon:'🔵', bonus:1.02, hex:'#3b82f6' },
+  purple: { id:'purple', name:'Purple', icon:'🟣', bonus:1.05, hex:'#a78bfa' },
+  pink:   { id:'pink',   name:'Pink',   icon:'🩷', bonus:1.04, hex:'#ff6fae' },
+  cyan:   { id:'cyan',   name:'Cyan',   icon:'🩵', bonus:1.03, hex:'#22d3ee' },
 };
+
+// Which colours a material can be bought/loaded in — defaults to every colour when absent.
+function getAllowedColors(materialId) {
+  const mat = MATERIALS[materialId];
+  return (mat && mat.allowedColors) ? mat.allowedColors : Object.keys(COLORS);
+}
 
 // speed: relative print rate · eff: filament efficiency (>1 = less waste) · quality: product value multiplier
 // failMod: multiplier on base fail rate (<1 = more reliable, >1 = flakier) · matClass: which materials it can load
@@ -111,27 +120,41 @@ const UPGRADES = {
   slicer_v2:      { id:'slicer_v2',      cat:'speed',      name:'Slicer Pro 2.0',      icon:'💻', cost:120,   desc:'Optimised print profiles.', effect:'+20% print speed',      req:[],                fn:s=>{s.speedMult*=1.2} },
   gyroid:         { id:'gyroid',         cat:'speed',      name:'Gyroid Infill',        icon:'🔺', cost:350,   desc:'Stronger, faster infill.',  effect:'+18% speed, −8% filament', req:['slicer_v2'],     fn:s=>{s.speedMult*=1.18; s.filamentMult*=0.92} },
   klipper:        { id:'klipper',        cat:'speed',      name:'OverKlok Firmware',    icon:'⚙️', cost:800,   desc:'Input shaping enabled.',    effect:'+35% print speed',      req:['slicer_v2'],     fn:s=>{s.speedMult*=1.35} },
+  cooling_fans:   { id:'cooling_fans',   cat:'speed',      name:'Turbo Cooling Fans',   icon:'🌀', cost:600,   desc:'Faster layer cooling.',     effect:'−15% print failures',   req:['slicer_v2'],     fn:s=>{s.failRate*=0.85} },
+  direct_drive:   { id:'direct_drive',   cat:'speed',      name:'Direct Drive Extruder',icon:'🎯', cost:1500,  desc:'Shorter filament path, less lag.', effect:'+15% speed, −5% filament', req:['gyroid'],   fn:s=>{s.speedMult*=1.15; s.filamentMult*=0.95} },
   pressure_adv:   { id:'pressure_adv',   cat:'speed',      name:'Pressure Advance',     icon:'📐', cost:2500,  desc:'Perfect corner geometry.',  effect:'+25% speed, +12% value', req:['klipper'],       fn:s=>{s.speedMult*=1.25; s.valueMult*=1.12} },
+  linear_rails:   { id:'linear_rails',   cat:'speed',      name:'Linear Rail Upgrade',  icon:'🛤️', cost:6000,  desc:'Precision linear motion.',  effect:'+20% print speed',      req:['pressure_adv'],  fn:s=>{s.speedMult*=1.2} },
   // Efficiency
   bulk_filament:  { id:'bulk_filament',  cat:'efficiency', name:'Bulk Filament Deal',   icon:'📦', cost:200,   desc:'Wholesale supplier deal.',  effect:'−25% filament cost',    req:[],                fn:s=>{s.filamentPrice*=0.75} },
-  pla_plus:       { id:'pla_plus',       cat:'efficiency', name:'Premium PLA+',          icon:'✨', cost:500,   desc:'Higher quality material.',  effect:'+18% product value',    req:['bulk_filament'], fn:s=>{s.valueMult*=1.18} },
-  cf_petg:        { id:'cf_petg',        cat:'efficiency', name:'Carbon Fiber PETG',    icon:'🔩', cost:2000,  desc:'Industrial-grade material.',effect:'+45% industrial value', req:['pla_plus'],      fn:s=>{s.industrialBonus*=1.45} },
   filament_dryer: { id:'filament_dryer', cat:'efficiency', name:'Filament Dryer',       icon:'🌡️', cost:180,   desc:'Eliminate moisture issues.', effect:'−60% print failures',  req:[],                fn:s=>{s.failRate*=0.4} },
+  pla_plus:       { id:'pla_plus',       cat:'efficiency', name:'Premium PLA+',          icon:'✨', cost:500,   desc:'Higher quality material.',  effect:'+18% product value',    req:['bulk_filament'], fn:s=>{s.valueMult*=1.18} },
+  recycled_spools:{ id:'recycled_spools',cat:'efficiency', name:'Recycled Spool Program',icon:'♻️', cost:900,   desc:'Reground filament stock.',  effect:'−15% filament cost',    req:['bulk_filament'], fn:s=>{s.filamentPrice*=0.85} },
+  vacuum_storage: { id:'vacuum_storage', cat:'efficiency', name:'Vacuum-Sealed Storage',icon:'🗜️', cost:1400,  desc:'Zero moisture ingress.',    effect:'−50% remaining failures',req:['filament_dryer'],fn:s=>{s.failRate*=0.5} },
+  cf_petg:        { id:'cf_petg',        cat:'efficiency', name:'Carbon Fiber PETG',    icon:'🔩', cost:2000,  desc:'Industrial-grade material.',effect:'+45% industrial value', req:['pla_plus'],      fn:s=>{s.industrialBonus*=1.45} },
+  supplier_deal:  { id:'supplier_deal',  cat:'efficiency', name:'Supplier Contract',    icon:'🤝', cost:4000,  desc:'Locked-in industrial rates.',effect:'+20% industrial value', req:['cf_petg'],       fn:s=>{s.industrialBonus*=1.2} },
   // Business
   etsy_store:     { id:'etsy_store',     cat:'business',   name:'CraftBazaar Shop',     icon:'🛍️', cost:75,    desc:'Your online storefront.',   effect:'+12% value, unlock passive online sales', req:[],            fn:s=>{s.valueMult*=1.12; s.unlockedAutoSell=true} },
+  loyalty_program:{ id:'loyalty_program',cat:'business',   name:'Loyalty Program',      icon:'💳', cost:500,   desc:'Repeat-customer discounts drive repeat sales.', effect:'+8% value', req:['etsy_store'], fn:s=>{s.valueMult*=1.08} },
   social_media:   { id:'social_media',   cat:'business',   name:'Social Media Presence',icon:'📱', cost:750,   desc:'Influencer collabs.',       effect:'+22% all values, unlock expo invites', req:['etsy_store'],    fn:s=>{s.valueMult*=1.22; s.exhibitionsEnabled=true} },
   biz_license:    { id:'biz_license',    cat:'business',   name:'Business License',     icon:'📋', cost:1500,  desc:'Official registered biz.',  effect:'Enable bulk orders',    req:['social_media'],  fn:s=>{s.bulkOrdersEnabled=true} },
   modelling_service: { id:'modelling_service', cat:'business', name:'3D Modelling Service', icon:'🖥️', cost:2200, desc:'Offer custom CAD design alongside printing.', effect:'Enable custom commission requests', req:['social_media'], fn:s=>{s.commissionsEnabled=true} },
+  intl_shipping:  { id:'intl_shipping',  cat:'business',   name:'International Shipping',icon:'🌍', cost:2500,  desc:'Ship worldwide.',           effect:'+15% value',            req:['biz_license'],   fn:s=>{s.valueMult*=1.15} },
+  franchise:      { id:'franchise',      cat:'business',   name:'Franchise License',    icon:'🏪', cost:8000,  desc:'License your brand to other makers.', effect:'+25% value',      req:['modelling_service'], fn:s=>{s.valueMult*=1.25} },
   // Room / shelving — a separate early, cheap progression so a cramped bedroom setup can grow to 8 printers
   wall_shelving:  { id:'wall_shelving',  cat:'space',      name:'Wall-Mounted Shelving',icon:'🗄️', cost:250,   desc:'Vertical storage for more printers.', effect:'+2 room capacity', req:[],                 fn:s=>{s.roomCapacityBonus=(s.roomCapacityBonus||0)+2} },
+  rolling_carts:  { id:'rolling_carts',  cat:'space',      name:'Rolling Storage Carts',icon:'🛒', cost:150,   desc:'Mobile under-desk storage.',effect:'+1 room capacity',      req:['wall_shelving'], fn:s=>{s.roomCapacityBonus=(s.roomCapacityBonus||0)+1} },
   overhead_rack:  { id:'overhead_rack',  cat:'space',      name:'Overhead Rack System', icon:'🪜', cost:900,   desc:'Ceiling-height racking.',   effect:'+2 room capacity',      req:['wall_shelving'], fn:s=>{s.roomCapacityBonus=(s.roomCapacityBonus||0)+2} },
   mezzanine:      { id:'mezzanine',      cat:'space',      name:'Mezzanine Storage',    icon:'🏗️', cost:3000,  desc:'A whole extra floor level.', effect:'+3 room capacity',     req:['overhead_rack'], fn:s=>{s.roomCapacityBonus=(s.roomCapacityBonus||0)+3} },
+  vertical_farm:  { id:'vertical_farm',  cat:'space',      name:'Vertical Farm Rig',    icon:'🏗️', cost:6000,  desc:'Floor-to-ceiling print farm racking.', effect:'+4 room capacity', req:['mezzanine'],     fn:s=>{s.roomCapacityBonus=(s.roomCapacityBonus||0)+4} },
   // Quality
   bed_leveling:   { id:'bed_leveling',   cat:'quality',    name:'Auto Bed Leveling',    icon:'📏', cost:150,   desc:'Auto-probe sensor installed.', effect:'Eliminate bed failures',req:[],                fn:s=>{s.failRate*=0.5} },
   enclosure:      { id:'enclosure',      cat:'quality',    name:'Printer Enclosure',    icon:'📦', cost:400,   desc:'Heated enclosure build.',   effect:'+18% quality bonus',    req:[],                fn:s=>{s.valueMult*=1.18} },
+  precision_nozzle:{ id:'precision_nozzle',cat:'quality',  name:'Precision Nozzles',    icon:'🔬', cost:350,   desc:'Finer layer resolution.',   effect:'+10% value',            req:['bed_leveling'],  fn:s=>{s.valueMult*=1.1} },
   dual_ext:       { id:'dual_ext',       cat:'quality',    name:'Dual Extruder',        icon:'🔧', cost:1200,  desc:'Multi-material printing.',  effect:'+28% decorative items', req:['enclosure'],     fn:s=>{s.decorativeBonus*=1.28} },
+  automated_qc:   { id:'automated_qc',   cat:'quality',    name:'Automated QC Camera',  icon:'📷', cost:2000,  desc:'Catches failures before they waste filament.', effect:'−30% remaining failures', req:['dual_ext'], fn:s=>{s.failRate*=0.7} },
   post_proc:      { id:'post_proc',      cat:'quality',    name:'Post-Processing Kit',  icon:'🎨', cost:3000,  desc:'Sanding, priming, paint.',  effect:'Unlocks the Finishing Studio',req:['dual_ext'],     fn:s=>{s.processingUnlocked=true} },
   resin_wash:     { id:'resin_wash',     cat:'quality',    name:'UV Cure Station',      icon:'☀️', cost:5500,  desc:'Professional resin finish.', effect:'+50% resin value',     req:['post_proc'],     fn:s=>{s.resinBonus*=1.5} },
+  museum_finish:  { id:'museum_finish',  cat:'quality',    name:'Museum-Grade Finish',  icon:'🏛️', cost:9000,  desc:'Gallery-quality resin post-processing.', effect:'+30% resin value', req:['resin_wash'],   fn:s=>{s.resinBonus*=1.3} },
 };
 
 const AUTOMATION_ITEMS = {
@@ -400,6 +423,10 @@ function migrateState(state) {
       p.material = Object.values(MATERIALS).find(m => m.matClass === pt?.matClass)?.id || 'pla';
     }
     if (!p.color) p.color = 'black';
+    // Carbon fiber (and any future colour-restricted material) may have been saved with a
+    // colour it can no longer use — clamp to something valid.
+    const allowed = getAllowedColors(p.material);
+    if (!allowed.includes(p.color)) p.color = allowed[0];
   }
   // Inventory/rawInventory used to be a flat productId -> qty map. Fold any leftover flat
   // entries into a generic PLA/black/ender3 stack so old saves don't lose their stock.
@@ -746,6 +773,7 @@ function tickSales(dt) {
     G.money += earned;
     G.lifetimeEarned += earned;
     G.incomeSamples.push({ t: now_t(), v: earned });
+    spawnFloat(`+$${fmtNum(earned)}`);
   }
 }
 
@@ -811,7 +839,7 @@ function sendToProcessing(key) {
   station.progress = 0;
 }
 
-function buyProcessingStation() {
+function buyProcessingStation(event) {
   const baseCost = 2000;
   const owned = G.processingStations.length;
   const maxStations = 4;
@@ -821,6 +849,7 @@ function buyProcessingStation() {
   G.money -= cost;
   G.processingStations.push({ id: ++stationId, stage:-1, item:null, progress:0 });
   toast('🎨 New Finishing Studio station built!', 'success');
+  spawnFloat(`-$${fmtNum(cost)}`, event, 'spend');
 }
 
 function tickProcessing(dt) {
@@ -870,7 +899,7 @@ function hireWorker(roleId) {
   toast(`🧑‍🔧 ${role.name} hired! Wage: $${role.wage.toFixed(2)}/sec`, 'success');
 }
 
-function buyRobot(roleId) {
+function buyRobot(roleId, event) {
   const role = STAFF_ROLES[roleId];
   if (!role) return;
   if (G.staff[roleId] === 'robot') return;
@@ -879,6 +908,7 @@ function buyRobot(roleId) {
   G.staff[roleId] = 'robot';
   delete G.staffUnpaid[roleId];
   toast(`🦾 ${role.robotName} installed! No wages, works forever.`, 'success');
+  spawnFloat(`-$${fmtNum(role.robotCost)}`, event, 'spend');
 }
 
 function fireWorker(roleId) {
@@ -946,7 +976,7 @@ function getRoomCapacity() {
   return cap;
 }
 
-function buyPrinter(typeId) {
+function buyPrinter(typeId, event) {
   const pt = PRINTER_TYPES[typeId];
   if (!pt) return;
   const owned = G.printers.filter(p => p.typeId === typeId).length;
@@ -959,6 +989,7 @@ function buyPrinter(typeId) {
   const defaultMaterial = Object.values(MATERIALS).find(m => m.matClass === pt.matClass)?.id || 'pla';
   G.printers.push({ id: ++printerId, typeId, progress:0, printing:false, job:defaultJob, material:defaultMaterial, color:'black', totalPrints:0, active:true });
   toast(`🖨️ ${pt.name} added to your workshop!`, 'success');
+  if (pt.cost > 0) spawnFloat(`-$${fmtNum(pt.cost)}`, event, 'spend');
 }
 
 function setPrinterMaterial(printerId, materialId) {
@@ -967,17 +998,23 @@ function setPrinterMaterial(printerId, materialId) {
   const mat = MATERIALS[materialId];
   if (!p || !mat || mat.matClass !== pt.matClass) return;
   p.material = materialId;
+  // Some materials (e.g. carbon fiber) are only produced in a subset of colours — clamp the
+  // printer's loaded colour to something valid for the newly selected material.
+  const allowed = getAllowedColors(materialId);
+  if (!allowed.includes(p.color)) p.color = allowed[0];
 }
 
 function setPrinterColor(printerId, colorId) {
   const p = G.printers.find(x => x.id === printerId);
-  if (p && COLORS[colorId]) p.color = colorId;
+  if (!p || !COLORS[colorId]) return;
+  if (!getAllowedColors(p.material).includes(colorId)) return;
+  p.color = colorId;
 }
 
 // ========================
 // WORKSHOP SPACE (office/warehouse rental)
 // ========================
-function rentSpace(id) {
+function rentSpace(id, event) {
   const space = OFFICE_SPACES[id];
   if (!space || G.rentedSpaces[id]) return;
   if (space.req && !G.upgrades[space.req] && !G.rentedSpaces[space.req]) { toast('Requirements not met!', 'warning'); return; }
@@ -986,6 +1023,7 @@ function rentSpace(id) {
   G.rentedSpaces[id] = true;
   delete G.spaceUnpaid[id];
   toast(`🏢 ${space.name} furnished and ready! +${space.capacity} room capacity.`, 'success');
+  spawnFloat(`-$${fmtNum(space.furnishing)}`, event, 'spend');
 }
 
 function tickRent(dt) {
@@ -1005,9 +1043,10 @@ function tickRent(dt) {
 // ========================
 // BUY FILAMENT
 // ========================
-function buyFilament(materialId, colorId, grams) {
+function buyFilament(materialId, colorId, grams, event) {
   const mat = MATERIALS[materialId];
-  const col = COLORS[colorId] || COLORS.black;
+  const allowed = getAllowedColors(materialId);
+  const col = COLORS[allowed.includes(colorId) ? colorId : allowed[0]];
   if (!mat) return;
   const jit = (G.automationOwned.jit_logistics && G.automationActive.jit_logistics) ? 0.72 : 1;
   const cost = grams * getMaterialPrice(materialId) * jit;
@@ -1016,26 +1055,13 @@ function buyFilament(materialId, colorId, grams) {
   if (!G.filamentStock[materialId]) G.filamentStock[materialId] = {};
   G.filamentStock[materialId][col.id] = (G.filamentStock[materialId][col.id] || 0) + grams;
   toast(`${mat.icon} +${fmtG(grams)} ${col.name} ${mat.name}`, 'info');
-}
-
-function openBulkFilament() {
-  // Quick buy shortcut — tops up whichever material+colour combo your printers use most
-  const counts = {};
-  const colorCounts = {};
-  for (const p of G.printers) {
-    counts[p.material] = (counts[p.material] || 0) + 1;
-    colorCounts[p.material] = colorCounts[p.material] || {};
-    colorCounts[p.material][p.color] = (colorCounts[p.material][p.color] || 0) + 1;
-  }
-  const topMaterial = Object.keys(counts).sort((a,b) => counts[b]-counts[a])[0] || 'pla';
-  const topColor = (colorCounts[topMaterial] && Object.keys(colorCounts[topMaterial]).sort((a,b) => colorCounts[topMaterial][b]-colorCounts[topMaterial][a])[0]) || 'black';
-  buyFilament(topMaterial, topColor, 500);
+  spawnFloat(`-$${fmtNum(cost)}`, event, 'spend');
 }
 
 // ========================
 // UPGRADES
 // ========================
-function buyUpgrade(id) {
+function buyUpgrade(id, event) {
   const upg = UPGRADES[id];
   if (!upg || G.upgrades[id]) return;
   if (G.money < upg.cost) { toast('Not enough money!', 'error'); return; }
@@ -1045,12 +1071,13 @@ function buyUpgrade(id) {
   G.upgrades[id] = true;
   upg.fn(G);
   toast(`🔬 ${upg.name} researched!`, 'success');
+  spawnFloat(`-$${fmtNum(upg.cost)}`, event, 'spend');
 }
 
 // ========================
 // AUTOMATION
 // ========================
-function buyAutomation(id) {
+function buyAutomation(id, event) {
   const a = AUTOMATION_ITEMS[id];
   if (!a || G.automationOwned[id]) return;
   if (a.req && !G.upgrades[a.req]) { toast(`Requires ${UPGRADES[a.req]?.name || a.req}!`, 'warning'); return; }
@@ -1059,6 +1086,7 @@ function buyAutomation(id) {
   G.automationOwned[id] = true;
   G.automationActive[id] = true;
   toast(`🤖 ${a.name} installed!`, 'success');
+  spawnFloat(`-$${fmtNum(a.cost)}`, event, 'spend');
 }
 
 function toggleAutomation(id) {
@@ -1069,7 +1097,7 @@ function toggleAutomation(id) {
 // ========================
 // PRODUCTS
 // ========================
-function unlockProduct(id) {
+function unlockProduct(id, event) {
   const prod = PRODUCTS[id];
   if (!prod || G.unlockedProducts.includes(id)) return;
   if (prod.variantId && !G.unlockedProducts.includes(prod.baseId)) {
@@ -1079,6 +1107,7 @@ function unlockProduct(id) {
   G.money -= prod.unlockCost;
   G.unlockedProducts.push(id);
   toast(`📦 ${prod.name} unlocked! Check your catalogue.`, 'success');
+  if (prod.unlockCost > 0) spawnFloat(`-$${fmtNum(prod.unlockCost)}`, event, 'spend');
 }
 
 // ========================
@@ -1309,6 +1338,35 @@ function render() {
   if (now - lastTabRender < TAB_RENDER_INTERVAL) return;
   lastTabRender = now;
   renderActiveTab();
+  renderSidebar();
+}
+
+// Condensed printer status list, visible in a sidebar regardless of which tab is active —
+// separate element IDs (pf-side-/pct-side-) from the Printers tab's own pf-/pct- so both can
+// exist in the DOM at once without colliding.
+function renderSidebar() {
+  const wrap = el('sidebar-printers-list');
+  if (!wrap || !G) return;
+  let html = '';
+  for (const p of G.printers) {
+    const pt = PRINTER_TYPES[p.typeId];
+    const prod = PRODUCTS[p.job];
+    const pct = Math.round(p.progress);
+    html += `<div class="side-printer ${p.printing ? 'active' : ''}">
+      <div class="side-printer-row">
+        <span class="side-printer-icon">${pt.icon}</span>
+        <div class="side-printer-info">
+          <div class="side-printer-name">${pt.name}</div>
+          <div class="side-printer-job">${prod ? prod.icon + ' ' + prod.name : 'No job'}</div>
+        </div>
+      </div>
+      ${p.printing
+        ? `<div class="side-progress-track"><div class="side-progress-fill" id="pf-side-${p.id}" style="width:${pct}%;background:${pt.color}"></div></div><div class="side-progress-label" id="pct-side-${p.id}">${pct}%</div>`
+        : `<div class="side-idle-label">Idle</div>`}
+    </div>`;
+  }
+  if (!html) html = `<div class="side-empty">No printers yet.</div>`;
+  morph(wrap, html);
 }
 
 // Runs every frame regardless of the render throttle, so progress bars animate smoothly
@@ -1316,6 +1374,14 @@ function render() {
 // style.width/textContent on elements that already exist — never touches structure.
 function updateLiveProgress() {
   if (!G) return;
+  for (const p of G.printers) {
+    if (!p.printing) continue;
+    const pct = Math.round(p.progress);
+    const sideFill = document.getElementById('pf-side-' + p.id);
+    const sideLabel = document.getElementById('pct-side-' + p.id);
+    if (sideFill) sideFill.style.width = pct + '%';
+    if (sideLabel) sideLabel.textContent = pct + '%';
+  }
   if (activeTab === 'printers') {
     for (const p of G.printers) {
       if (!p.printing) continue;
@@ -1337,6 +1403,38 @@ function updateLiveProgress() {
   }
 }
 
+// Every timed multiplier currently in effect — the publicity/viral boost (also used by
+// exhibitions), and the three random-event multipliers — surfaced together so the player can
+// see at a glance what's active and how long it has left, instead of discovering it via toasts.
+function getActiveBuffs() {
+  const buffs = [];
+  const now = G.playTime;
+  if (now < G.viralBoostUntil) {
+    const buff = G.viralBoostMult >= 1;
+    buffs.push({ icon: buff ? '🔥' : '📉', label: `Publicity ×${G.viralBoostMult.toFixed(2)}`, remaining: G.viralBoostUntil - now, buff });
+  }
+  if (now < G.filamentPriceEventUntil && G.filamentPriceEventMult !== 1) {
+    const buff = G.filamentPriceEventMult < 1;
+    const pct = Math.abs(Math.round((1 - G.filamentPriceEventMult) * 100));
+    buffs.push({ icon: '📦', label: `Filament ${buff ? '-' : '+'}${pct}%`, remaining: G.filamentPriceEventUntil - now, buff });
+  }
+  if (now < G.failRateEventUntil && G.failRateEventMult !== 1) {
+    const buff = G.failRateEventMult < 1;
+    buffs.push({ icon: '⚡', label: `Fail Rate ×${G.failRateEventMult.toFixed(2)}`, remaining: G.failRateEventUntil - now, buff });
+  }
+  if (now < G.demandEventUntil && G.demandEventMult !== 1) {
+    const buff = G.demandEventMult >= 1;
+    buffs.push({ icon: buff ? '⭐' : '📮', label: `Demand ×${G.demandEventMult.toFixed(2)}`, remaining: G.demandEventUntil - now, buff });
+  }
+  return buffs;
+}
+
+function fmtTimer(secs) {
+  const s = Math.max(0, Math.ceil(secs));
+  if (s < 60) return s + 's';
+  return Math.floor(s / 60) + 'm ' + (s % 60) + 's';
+}
+
 function renderHUD() {
   el('hud-brand').textContent = G.shopName;
   el('hud-money').textContent = '$' + fmtNum(G.money);
@@ -1348,6 +1446,14 @@ function renderHUD() {
   const badge = el('phase-badge');
   badge.textContent = G.phase;
   badge.className = 'phase-badge phase-' + G.phase.toLowerCase();
+
+  const buffsWrap = el('hud-buffs');
+  const buffs = getActiveBuffs();
+  if (!buffs.length) {
+    buffsWrap.innerHTML = '';
+  } else {
+    morph(buffsWrap, buffs.map(b => `<span class="buff-chip ${b.buff ? 'buff' : 'debuff'}">${b.icon} ${b.label} <span class="buff-timer">${fmtTimer(b.remaining)}</span></span>`).join(''));
+  }
 }
 
 function renderPrinters() {
@@ -1375,7 +1481,7 @@ function renderPrinters() {
             ${Object.values(MATERIALS).filter(m => m.matClass === pt.matClass).map(m => `<option value="${m.id}" ${p.material===m.id?'selected':''}>${m.icon} ${m.name}</option>`).join('')}
           </select>
           <select class="sel" onchange="setPrinterColor(${p.id}, this.value)" title="Colour loaded">
-            ${Object.values(COLORS).map(c => `<option value="${c.id}" ${p.color===c.id?'selected':''}>${c.icon} ${c.name}</option>`).join('')}
+            ${getAllowedColors(p.material).map(cid => COLORS[cid]).map(c => `<option value="${c.id}" ${p.color===c.id?'selected':''}>${c.icon} ${c.name}</option>`).join('')}
           </select>
           ${!isActive
             ? `<button class="btn btn-primary btn-sm" onclick="manualStartPrint(${p.id})">▶ PRINT</button>`
@@ -1413,7 +1519,7 @@ function renderPrinters() {
     const atMax = owned >= maxOwn;
     if (atMax) continue;
     const blocked = !canAfford || roomFull;
-    bhtml += `<div class="buy-printer-card ${blocked ? 'cannot-afford' : ''}" onclick="${!blocked ? `buyPrinter('${tid}')` : ''}">
+    bhtml += `<div class="buy-printer-card ${blocked ? 'cannot-afford' : ''}" onclick="${!blocked ? `buyPrinter('${tid}', event)` : ''}">
       <div class="bpc-header">
         <span style="font-size:24px">${pt.icon}</span>
         <div>
@@ -1454,7 +1560,7 @@ function renderPrinters() {
       if (rented) {
         shtml += `<span style="font-family:var(--font-mono);font-size:11px;color:${unpaid?'var(--red)':'var(--accent2)'}">${unpaid?'⚠️ RENT OVERDUE':'✓ LEASED & PAID UP'}</span>`;
       } else if (reqOk) {
-        shtml += `<button class="btn btn-buy btn-sm" onclick="rentSpace('${sid}')" ${G.money<space.furnishing?'disabled':''}>FURNISH & LEASE — $${fmtNum(space.furnishing)}</button>`;
+        shtml += `<button class="btn btn-buy btn-sm" onclick="rentSpace('${sid}', event)" ${G.money<space.furnishing?'disabled':''}>FURNISH & LEASE — $${fmtNum(space.furnishing)}</button>`;
       } else {
         shtml += `<span style="font-size:11px;color:var(--text3)">Requires: ${space.req === 'mezzanine' ? 'Mezzanine Storage upgrade' : OFFICE_SPACES[space.req]?.name}</span>`;
       }
@@ -1466,7 +1572,10 @@ function renderPrinters() {
 
   // Filament / material section — stock is tracked per colour, so buying picks a colour first
   const filDisplay = el('fil-stock-display');
-  filDisplay.textContent = fmtG(getTotalFilament());
+  const totalFilament = getTotalFilament();
+  filDisplay.textContent = fmtG(totalFilament);
+  const spoolTotal = el('fil-spool-total');
+  if (spoolTotal) spoolTotal.innerHTML = spoolHtml(totalFilament / SPOOL_REFERENCE_MAX * 100, getPredominantColorHex());
   const filBtns = el('fil-buttons');
   const amounts = [100, 500, 2000];
   const jitActive = G.automationOwned.jit_logistics && G.automationActive.jit_logistics;
@@ -1474,25 +1583,61 @@ function renderPrinters() {
     const stockByColor = G.filamentStock[mat.id] || {};
     const totalStock = Object.values(stockByColor).reduce((a,b)=>a+b,0);
     const breakdown = Object.entries(stockByColor).filter(([,g])=>g>0).map(([cid,g])=>`${COLORS[cid]?.icon||''}${fmtG(g)}`).join(' · ');
-    const pickedColor = G.filamentColorPick[mat.id] || 'black';
+    const allowedColors = getAllowedColors(mat.id);
+    const pickedColor = allowedColors.includes(G.filamentColorPick[mat.id]) ? G.filamentColorPick[mat.id] : allowedColors[0];
+    const matColorHex = COLORS[getPredominantColor(mat.id)]?.hex || '#555';
     const buttons = amounts.map(g => {
       const cost = g * getMaterialPrice(mat.id) * (jitActive ? 0.72 : 1);
       const canAfford = G.money >= cost;
-      return `<button class="btn btn-buy btn-xs" onclick="buyFilament('${mat.id}', G.filamentColorPick['${mat.id}']||'black', ${g})" ${!canAfford?'disabled':''}>${fmtG(g)} — $${fmtNum(cost)}</button>`;
+      return `<button class="btn btn-buy btn-xs" onclick="buyFilament('${mat.id}', G.filamentColorPick['${mat.id}']||'${allowedColors[0]}', ${g}, event)" ${!canAfford?'disabled':''}>${fmtG(g)} — $${fmtNum(cost)}</button>`;
     }).join('');
     return `<div class="card" style="min-width:240px">
-      <div class="card-header"><span class="card-icon">${mat.icon}</span><div><div class="card-title" style="font-size:14px">${mat.name}</div><div class="card-sub">${fmtG(totalStock)} total in stock</div></div></div>
+      <div class="card-header">${spoolHtml(totalStock / MATERIAL_SPOOL_MAX * 100, matColorHex, true)}<div><div class="card-title" style="font-size:14px">${mat.icon} ${mat.name}</div><div class="card-sub">${fmtG(totalStock)} total in stock</div></div></div>
       <div class="card-body" style="margin-bottom:8px">${mat.desc}${jitActive ? ' (−28% JIT)' : ''}</div>
       ${breakdown ? `<div class="tip" style="margin-bottom:6px">${breakdown}</div>` : ''}
       <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
         <label style="font-size:11px;color:var(--text2)">Buy colour:</label>
-        <select class="sel" onchange="setFilamentColorPick('${mat.id}', this.value)">
-          ${Object.values(COLORS).map(c => `<option value="${c.id}" ${pickedColor===c.id?'selected':''}>${c.icon} ${c.name}</option>`).join('')}
+        <select class="sel" onchange="setFilamentColorPick('${mat.id}', this.value)" ${allowedColors.length<=1?'disabled':''}>
+          ${allowedColors.map(cid => COLORS[cid]).map(c => `<option value="${c.id}" ${pickedColor===c.id?'selected':''}>${c.icon} ${c.name}</option>`).join('')}
         </select>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">${buttons}</div>
     </div>`;
   }).join(''));
+}
+
+// ========================
+// FILAMENT SPOOL GRAPHIC
+// ========================
+// Purely visual — a simplified coloured "spool" whose fill drains as stock depletes and refills
+// when you buy more. Percentages are normalised against a fixed reference amount so the graphic
+// stays meaningful at both very low and very high stock levels; it has no gameplay effect.
+const SPOOL_REFERENCE_MAX = 5000;
+const MATERIAL_SPOOL_MAX = 2000;
+
+function spoolHtml(fillPct, colorHex, small) {
+  const pct = Math.max(0, Math.min(100, fillPct || 0));
+  return `<div class="spool${small ? ' spool-sm' : ''}"><div class="spool-fill" style="height:${pct}%;background:${colorHex}"></div><div class="spool-hub"></div></div>`;
+}
+
+function getPredominantColor(materialId) {
+  const stock = G.filamentStock[materialId] || {};
+  let best = 'black', bestQty = -1;
+  for (const [cid, qty] of Object.entries(stock)) {
+    if (qty > bestQty) { bestQty = qty; best = cid; }
+  }
+  return best;
+}
+
+function getPredominantColorHex() {
+  let best = 'black', bestQty = -1;
+  for (const matId of Object.keys(MATERIALS)) {
+    const stock = G.filamentStock[matId] || {};
+    for (const [cid, qty] of Object.entries(stock)) {
+      if (qty > bestQty) { bestQty = qty; best = cid; }
+    }
+  }
+  return COLORS[best]?.hex || '#555';
 }
 
 function setFilamentColorPick(materialId, colorId) {
@@ -1584,7 +1729,7 @@ function renderProducts() {
       ${!unlocked ? `<div class="unlock-overlay">
         <span>🔒 LOCKED</span>
         <span class="unlock-cost">$${fmtNum(prod.unlockCost)}</span>
-        <button class="btn btn-buy btn-sm" onclick="unlockProduct('${pid}')" ${G.money<prod.unlockCost?'disabled':''}>UNLOCK</button>
+        <button class="btn btn-buy btn-sm" onclick="unlockProduct('${pid}', event)" ${G.money<prod.unlockCost?'disabled':''}>UNLOCK</button>
       </div>` : ''}
     </div>`;
   }
@@ -1603,6 +1748,91 @@ function renderProducts() {
   morph(grid, html);
 }
 
+// ========================
+// TECH TREE (node-based upgrade layout, branches rightward by prerequisite depth)
+// ========================
+const TECH_NODE_W = 176;
+const TECH_NODE_H = 122;
+const TECH_COL_GAP = 56;
+const TECH_ROW_GAP = 18;
+
+// Depth = how many prerequisite "hops" deep a node is within its own category — a node with no
+// req is depth 0; everything branches rightward from there based on which node(s) unlock it.
+function computeTechDepths(catUpgradeIds) {
+  const idSet = new Set(catUpgradeIds);
+  const depths = {};
+  function depth(uid) {
+    if (depths[uid] !== undefined) return depths[uid];
+    depths[uid] = 0; // cycle guard
+    const reqs = (UPGRADES[uid].req || []).filter(r => idSet.has(r));
+    depths[uid] = reqs.length ? 1 + Math.max(...reqs.map(depth)) : 0;
+    return depths[uid];
+  }
+  catUpgradeIds.forEach(depth);
+  return depths;
+}
+
+function renderTechLane(catId) {
+  const catUpgradeIds = Object.keys(UPGRADES).filter(uid => UPGRADES[uid].cat === catId);
+  const depths = computeTechDepths(catUpgradeIds);
+  const byDepth = {};
+  for (const uid of catUpgradeIds) (byDepth[depths[uid]] = byDepth[depths[uid]] || []).push(uid);
+  const maxDepth = Math.max(...Object.keys(byDepth).map(Number));
+  const maxSlots = Math.max(...Object.values(byDepth).map(arr => arr.length));
+
+  const pos = {};
+  for (const [d, ids] of Object.entries(byDepth)) {
+    ids.forEach((uid, slot) => {
+      pos[uid] = { x: Number(d) * (TECH_NODE_W + TECH_COL_GAP), y: slot * (TECH_NODE_H + TECH_ROW_GAP) };
+    });
+  }
+  const canvasW = (maxDepth + 1) * TECH_NODE_W + maxDepth * TECH_COL_GAP;
+  const canvasH = maxSlots * TECH_NODE_H + (maxSlots - 1) * TECH_ROW_GAP;
+
+  let lines = '';
+  let nodes = '';
+  for (const uid of catUpgradeIds) {
+    const upg = UPGRADES[uid];
+    const bought = !!G.upgrades[uid];
+    const reqsMet = (upg.req || []).every(r => G.upgrades[r]);
+    const canAfford = G.money >= upg.cost;
+    const { x, y } = pos[uid];
+
+    for (const reqId of (upg.req || [])) {
+      if (!pos[reqId]) continue;
+      const rp = pos[reqId];
+      const x1 = rp.x + TECH_NODE_W, y1 = rp.y + TECH_NODE_H / 2;
+      const x2 = x, y2 = y + TECH_NODE_H / 2;
+      const midX = (x1 + x2) / 2;
+      const done = bought && G.upgrades[reqId];
+      lines += `<path d="M${x1},${y1} C${midX},${y1} ${midX},${y2} ${x2},${y2}" style="fill:none;stroke:${done ? 'var(--green)' : 'var(--border2)'};stroke-width:2"/>`;
+    }
+
+    let cls = 'tech-node';
+    if (bought) cls += ' bought';
+    else if (!reqsMet) cls += ' locked';
+    else if (canAfford) cls += ' affordable';
+
+    nodes += `<div class="${cls}" style="left:${x}px;top:${y}px;width:${TECH_NODE_W}px;height:${TECH_NODE_H}px" title="${upg.desc}">
+      <div class="tech-node-icon">${upg.icon}</div>
+      <div class="tech-node-name">${upg.name}</div>
+      <div class="tech-node-effect">${upg.effect}</div>
+      <div class="tech-node-foot">
+        ${bought
+          ? `<span class="bought-tag">✓ DONE</span>`
+          : reqsMet
+            ? `<button class="btn btn-primary btn-xs" onclick="buyUpgrade('${uid}', event)" ${!canAfford ? 'disabled' : ''}>$${fmtNum(upg.cost)}</button>`
+            : `<span class="tech-locked">🔒 Locked</span>`}
+      </div>
+    </div>`;
+  }
+
+  return `<div class="tech-tree-wrap"><div class="tech-lane-canvas" style="width:${canvasW}px;height:${canvasH}px">
+    <svg class="tech-lines" width="${canvasW}" height="${canvasH}">${lines}</svg>
+    ${nodes}
+  </div></div>`;
+}
+
 function renderUpgrades() {
   const wrap = el('upgrades-content');
   const cats = { speed:'⚡ PRINT SPEED', efficiency:'📦 EFFICIENCY', space:'🏠 WORKSHOP SPACE', business:'💼 BUSINESS', quality:'✨ QUALITY' };
@@ -1619,38 +1849,8 @@ function renderUpgrades() {
   }
 
   for (const [catId, catLabel] of Object.entries(cats)) {
-    html += `<div class="cat-header"><div class="cat-label">${catLabel}</div><div class="cat-line"></div></div>
-    <div class="upgrade-grid">`;
-    for (const [uid, upg] of Object.entries(UPGRADES)) {
-      if (upg.cat !== catId) continue;
-      const bought = !!G.upgrades[uid];
-      const reqsMet = (upg.req||[]).every(r => G.upgrades[r]);
-      const canAfford = G.money >= upg.cost;
-      let cls = 'upgrade-card';
-      if (bought) cls += ' bought';
-      else if (!reqsMet) cls += ' locked';
-      else if (canAfford) cls += ' affordable';
-      html += `<div class="${cls}">
-        <div class="upg-header">
-          <div class="upg-icon">${upg.icon}</div>
-          <div>
-            <div class="upg-title">${upg.name}</div>
-            <div class="upg-sub">${upg.cat}</div>
-          </div>
-        </div>
-        <div class="upg-desc">${upg.desc}</div>
-        <div class="upg-effect">${upg.effect}</div>
-        <div class="upg-bottom">
-          <div class="upg-cost">${bought ? '' : '$' + fmtNum(upg.cost)}</div>
-          ${bought
-            ? `<span class="bought-tag">✓ RESEARCHED</span>`
-            : reqsMet
-              ? `<button class="btn btn-primary btn-sm" onclick="buyUpgrade('${uid}')" ${!canAfford?'disabled':''}>RESEARCH</button>`
-              : `<span style="font-size:11px;color:var(--text3)">Requires: ${upg.req.map(r=>UPGRADES[r]?.name||r).join(', ')}</span>`}
-        </div>
-      </div>`;
-    }
-    html += '</div>';
+    html += `<div class="cat-header"><div class="cat-label">${catLabel}</div><div class="cat-line"></div></div>`;
+    html += renderTechLane(catId);
   }
 
   // Prestige
@@ -1745,7 +1945,7 @@ function renderStudio() {
     }
     const stationCost = 2000 * Math.pow(1.8, G.processingStations.length - 1);
     if (G.processingStations.length < 4) {
-      html += `<div class="buy-printer-card ${G.money<stationCost?'cannot-afford':''}" onclick="${G.money>=stationCost?'buyProcessingStation()':''}">
+      html += `<div class="buy-printer-card ${G.money<stationCost?'cannot-afford':''}" onclick="${G.money>=stationCost?'buyProcessingStation(event)':''}">
         <div class="bpc-header"><span style="font-size:24px">➕</span><div><div class="bpc-name">Build Station</div><div class="bpc-cost">$${fmtNum(stationCost)}</div></div></div>
         <div class="bpc-desc">Add another Finishing Studio station (${G.processingStations.length}/4).</div>
       </div>`;
@@ -1785,13 +1985,13 @@ function renderStudio() {
     if (!current) {
       html += `<div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-cyan btn-sm" onclick="hireWorker('${roleId}')">HIRE — $${role.wage.toFixed(2)}/sec</button>
-        <button class="btn btn-buy btn-sm" onclick="buyRobot('${roleId}')" ${G.money<role.robotCost?'disabled':''}>BUY ${role.robotIcon} — $${fmtNum(role.robotCost)}</button>
+        <button class="btn btn-buy btn-sm" onclick="buyRobot('${roleId}', event)" ${G.money<role.robotCost?'disabled':''}>BUY ${role.robotIcon} — $${fmtNum(role.robotCost)}</button>
       </div>`;
     } else if (current === 'worker') {
       html += `<div class="toggle-row">
         <span style="font-family:var(--font-mono);font-size:11px;color:${unpaid?'var(--red)':'var(--accent2)'}">${unpaid?'⚠️ UNPAID — PAUSED':'ON PAYROLL'}</span>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-buy btn-xs" onclick="buyRobot('${roleId}')" ${G.money<role.robotCost?'disabled':''}>UPGRADE TO ${role.robotIcon}</button>
+          <button class="btn btn-buy btn-xs" onclick="buyRobot('${roleId}', event)" ${G.money<role.robotCost?'disabled':''}>UPGRADE TO ${role.robotIcon}</button>
           <button class="btn btn-stop btn-xs" onclick="fireWorker('${roleId}')">FIRE</button>
         </div>
       </div>`;
@@ -1815,9 +2015,39 @@ function renderStudio() {
     <div class="card-header"><span class="card-icon">🎥</span><div><div class="card-title">Post a Timelapse</div><div class="card-sub">${G.timelapses} clip${G.timelapses===1?'':'s'} ready</div></div></div>
     <div class="card-body">Prints have a chance to capture a timelapse clip. Post it for followers, a temporary value boost, and a shot at going viral.</div>
     <button class="btn btn-primary btn-sm" onclick="postTimelapse()" ${G.timelapses<1?'disabled':''}>📱 POST TIMELAPSE</button>
+  </div>
+  <div class="social-feed-wrap">
+    <div class="social-feed-title">💬 What customers are saying</div>
+    ${socialFeedHtml()}
   </div>`;
 
   morph(wrap, html);
+}
+
+// Cosmetic scrolling feed of customer comments/reviews — purely flavour, no gameplay effect.
+// Rendered once per renderStudio() call (not per-frame), so the CSS animation just keeps
+// looping smoothly in between without JS needing to touch it again.
+const SOCIAL_COMMENTS = [
+  { user:'@printcollector99',   text:'Just got my order, the quality is amazing! 😍', stars:5 },
+  { user:'@makerspace_dan',     text:'Fast shipping, will buy again.',                 stars:5 },
+  { user:'@jenny_makes',        text:'Cute but a little smaller than I expected.',     stars:4 },
+  { user:'@garage_engineer',    text:'Solid print quality for the price. Recommended.',stars:5 },
+  { user:'@tabletop_terry',     text:'Perfect for my minis collection!',               stars:5 },
+  { user:'@budget_builds',      text:'Took a while to arrive but worth the wait.',     stars:4 },
+  { user:'@officeupgrades',     text:'Exactly what my desk needed. 10/10.',            stars:5 },
+  { user:'@skeptical_sam',      text:'Decent, though the finish could be smoother.',   stars:3 },
+  { user:'@dronepilot_kay',     text:'Replacement part fit perfectly first try!',      stars:5 },
+  { user:'@homeoffice_hero',    text:'Bought three more for the whole team.',          stars:5 },
+  { user:'@firsttime_fan',      text:'My first 3D printed thing ever — love it!',      stars:5 },
+  { user:'@propmaker_lee',      text:'Great detail on the engraving, very sharp.',     stars:5 },
+];
+
+function socialFeedHtml() {
+  const row = c => `<div class="social-comment"><span class="social-stars">${'★'.repeat(c.stars)}${'☆'.repeat(5-c.stars)}</span><span class="social-user">${c.user}</span><span class="social-text">${c.text}</span></div>`;
+  const items = SOCIAL_COMMENTS.map(row).join('');
+  // Comment list is duplicated back-to-back so the CSS scroll animation can loop seamlessly
+  // from -50% back to 0% without a visible jump.
+  return `<div class="social-feed"><div class="social-feed-track">${items}${items}</div></div>`;
 }
 
 function renderStats() {
@@ -2014,6 +2244,111 @@ function dbLog(msg, type) {
 }
 
 // ========================
+// SETTINGS (theme, UI scale, save/export/import, reset)
+// ========================
+const THEME_KEY = '3dp_theme';
+const UI_SCALE_KEY = '3dp_ui_scale';
+const GITHUB_REPO_URL = 'https://github.com/TheBooleanJulian/3dp-tycoon';
+const GITHUB_PROFILE_URL = 'https://github.com/TheBooleanJulian';
+
+// Condensed in-game copy of the README changelog — most recent first. Kept short (one line per
+// change) since the full detailed history lives in README.md; this is just enough to answer
+// "what's new" without leaving the game.
+const CHANGELOG = [
+  { version:'1.9.0', notes:[
+    'Node-based tech tree for Upgrades, with more research nodes',
+    'Always-visible sidebar showing every printer\'s live print status',
+    'Filament stock section moved above Buy Printers; added a spool graphic that visibly drains',
+    'Added Pink and Cyan filament colours; Carbon Fiber Composite is now black-only',
+    'Floating value text now appears for purchases too, not just sales',
+    'Scrolling customer comments/reviews feed under Marketing',
+    'Settings menu now includes changelog, GitHub link, and credit',
+  ]},
+  { version:'1.8.0', notes:[
+    'Buffs/debuffs bar under the HUD with live countdowns',
+    'Settings menu: Save/Export/Import moved out of the HUD, plus light/dark theme and UI scale',
+    'Removed the HUD "+ FILAMENT" quick-buy button',
+  ]},
+  { version:'1.7.1', notes:[
+    'Lowered CraftBazaar Shop\'s cost so it\'s reachable within ~20 LIQUIDATE sales',
+    'Fixed a rare boot-loading-bar crash that could freeze the splash screen',
+  ]},
+  { version:'1.7.0', notes:[
+    'Filament stock and inventory are now tracked per material AND per colour, discretely priced',
+    'Manual SELL replaced with passive demand-driven sales, plus a LIQUIDATE action for instant cash',
+    'Automation reachable earlier and cheaper; added custom commissions and more random events',
+    'Added lifetime successful/failed print mass stats',
+  ]},
+  { version:'1.6.0', notes:[
+    'Replaced innerHTML rebuilds with a DOM-morphing renderer, fixing render-tearing bugs',
+  ]},
+  { version:'1.5.0', notes:[
+    'Expanded from 20 to 100 products via base×variant tiers',
+  ]},
+  { version:'1.4.0', notes:[
+    'Added filament materials and colours, loaded independently per printer',
+  ]},
+];
+
+function openSettings() {
+  document.getElementById('settings-modal').classList.add('open');
+}
+
+function toggleChangelog() {
+  const box = document.getElementById('changelog-box');
+  if (!box) return;
+  const opening = !box.classList.contains('open');
+  box.classList.toggle('open');
+  if (opening && !box.dataset.filled) {
+    box.dataset.filled = '1';
+    box.innerHTML = CHANGELOG.map(entry => `
+      <div class="changelog-entry">
+        <div class="changelog-version">v${entry.version}</div>
+        <ul class="changelog-notes">${entry.notes.map(n => `<li>${n}</li>`).join('')}</ul>
+      </div>
+    `).join('');
+  }
+}
+
+function closeSettings() {
+  document.getElementById('settings-modal').classList.remove('open');
+}
+
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem(THEME_KEY, theme);
+  updateThemeButtons(theme);
+}
+
+function updateThemeButtons(theme) {
+  const darkBtn = document.getElementById('theme-btn-dark');
+  const lightBtn = document.getElementById('theme-btn-light');
+  if (darkBtn) darkBtn.classList.toggle('active', theme === 'dark');
+  if (lightBtn) lightBtn.classList.toggle('active', theme === 'light');
+}
+
+function setUIScale(pct) {
+  const scale = Math.max(80, Math.min(150, Number(pct) || 100));
+  const wrap = document.getElementById('app-scale-wrap');
+  if (wrap) wrap.style.zoom = (scale / 100);
+  localStorage.setItem(UI_SCALE_KEY, String(scale));
+  const label = document.getElementById('ui-scale-label');
+  if (label) label.textContent = scale + '%';
+  const slider = document.getElementById('ui-scale-slider');
+  if (slider && Number(slider.value) !== scale) slider.value = scale;
+}
+
+// Applied as early as possible (this script runs synchronously at parse time, before the
+// splash screen is shown) so there's no flash of the wrong theme/scale on load.
+function initSettings() {
+  const theme = localStorage.getItem(THEME_KEY) || 'dark';
+  setTheme(theme);
+  const scale = Number(localStorage.getItem(UI_SCALE_KEY)) || 100;
+  setUIScale(scale);
+}
+initSettings();
+
+// ========================
 // UI HELPERS
 // ========================
 function switchTab(name) {
@@ -2026,6 +2361,7 @@ function switchTab(name) {
   if (btn) btn.classList.add('active');
   renderHUD();
   renderActiveTab();
+  renderSidebar();
   lastTabRender = now_t();
 }
 
@@ -2116,12 +2452,23 @@ function toast(msg, type, duration) {
   }, duration || 3000);
 }
 
-function spawnFloat(text, event) {
+// `kind` is 'gain' (default, green +$) or 'spend' (red -$) — used for both manual clicks (an
+// `event` gives an exact spawn point) and automated events like passive sales or auto-resupply
+// (no event, so it anchors near the HUD balance where the number the player cares about is).
+function spawnFloat(text, event, kind) {
   const floats = document.getElementById('floats');
   const el = document.createElement('div');
-  el.className = 'float-num';
-  const x = event ? (event.clientX || window.innerWidth/2) : window.innerWidth/2;
-  const y = event ? (event.clientY || window.innerHeight/2) : window.innerHeight/2;
+  el.className = 'float-num' + (kind === 'spend' ? ' float-spend' : '');
+  let x, y;
+  if (event && (event.clientX || event.clientY)) {
+    x = event.clientX;
+    y = event.clientY;
+  } else {
+    const anchor = document.getElementById('hud-money');
+    const rect = anchor ? anchor.getBoundingClientRect() : null;
+    x = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
+    y = rect ? rect.bottom + 8 : 80;
+  }
   el.style.left = (x + Math.random()*40-20) + 'px';
   el.style.top = (y - 10) + 'px';
   el.textContent = text;
