@@ -8,7 +8,7 @@
 
 An idle incremental business simulator where you grow a home-based 3D printing operation into a full manufacturing empire.
 
-![Version](https://img.shields.io/badge/version-1.12.0-00D4C8)
+![Version](https://img.shields.io/badge/version-1.12.1-00D4C8)
 ![JavaScript](https://img.shields.io/badge/-JavaScript-F7DF1E?logo=javascript&logoColor=black)
 ![Node.js](https://img.shields.io/badge/-Node.js-339933?logo=node.js&logoColor=white)
 ![License](https://img.shields.io/badge/license-AGPLv3%20%2B%20Commercial-00D4C8.svg)
@@ -296,6 +296,9 @@ Push to GitHub and enable Pages for the `main` branch.
 ## 📋 Changelog
 
 Versioning follows `MAJOR.MINOR.PATCH`: **major** bumps for breaking/structural changes (save format, core loop rework), **minor** bumps for new features (printers, products, systems), **patch** bumps for balance tweaks and bug fixes.
+
+### v1.12.1
+- Fixed the always-visible printer sidebar pushing the main gameplay area off-screen on narrow/mobile viewports — below ~720px wide it now stacks above the content as a compact horizontally-scrolling strip instead of sitting beside it at a fixed 230px width
 
 ### v1.12.0
 - Added optional **☁ Cloud Save**: link your save to a short code (Settings menu → CREATE CLOUD SAVE) and load it on any other browser/device with LOAD FROM CODE — auto-syncs on every save/autosave from then on

@@ -122,6 +122,17 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .tab-panel{display:none}
 .tab-panel.active{display:block}
 
+/* Below this width, a fixed 230px sidebar sitting beside #content pushes the gameplay area far
+   enough right that it's effectively unusable — stack the sidebar above the content instead,
+   as a compact horizontally-scrolling strip rather than a tall vertical list. */
+@media (max-width: 720px) {
+  #main-layout{flex-direction:column}
+  #printer-sidebar{width:100%;box-sizing:border-box;border-right:none;border-bottom:1px solid var(--border);max-height:150px;overflow-y:hidden}
+  #sidebar-printers-list{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+  .side-printer{min-width:170px;flex-shrink:0;margin-bottom:0}
+  #content{padding:16px 10px 80px}
+}
+
 /* ===== SECTION HEADERS ===== */
 .section-hdr{display:flex;align-items:center;gap:10px;margin-bottom:16px}
 .section-hdr h2{font-family:var(--font-title);font-size:13px;color:var(--text2);letter-spacing:.1em;font-weight:700}
