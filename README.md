@@ -8,7 +8,7 @@
 
 An idle incremental business simulator where you grow a home-based 3D printing operation into a full manufacturing empire.
 
-![Version](https://img.shields.io/badge/version-1.10.1-00D4C8)
+![Version](https://img.shields.io/badge/version-1.11.0-00D4C8)
 ![JavaScript](https://img.shields.io/badge/-JavaScript-F7DF1E?logo=javascript&logoColor=black)
 ![Node.js](https://img.shields.io/badge/-Node.js-339933?logo=node.js&logoColor=white)
 ![License](https://img.shields.io/badge/license-AGPLv3%20%2B%20Commercial-00D4C8.svg)
@@ -38,7 +38,7 @@ An idle incremental business simulator where you grow a home-based 3D printing o
 9. **Market** — Post timelapse clips or attend exhibitions for followers, value boosts, and a shot at going viral
 10. **Staff up** — Hire workers (wages) or buy robot arms (one-time cost) to automate finishing and marketing
 11. **Take custom orders** — Research 3D Modelling Service to receive custom commission requests, and upsell CAD design alongside the print itself
-12. **Scale Up** — Prestige for a permanent earnings multiplier
+12. **Scale Up** — Prestige for a permanent earnings multiplier and 💠 Prestigium, a meta-currency that survives every reset and unlocks its own permanent tech tree
 
 ## Features
 
@@ -54,7 +54,8 @@ An idle incremental business simulator where you grow a home-based 3D printing o
 - **Workforce** — hire human workers (wages) or buy robot arms (one-time cost) to automate finishing and marketing
 - **Full automation, reachable early** — auto-print, auto-liquidate overflow, and filament resupply are all cheap, tier-1 unlocks so the operation can go hands-off well before the late game
 - **Achievements** — unlock tracking across prints, earnings, followers, and more
-- **Prestige** — reset for a permanent earnings multiplier and replay with a head start
+- **Prestige** — reset for a permanent earnings multiplier and replay with a head start, with a live progress bar toward the next Scale Up
+- **💠 Prestigium meta-currency** — earned on every Scale Up (more for waiting longer past the requirement) and spent on its own 10-node permanent tech tree that survives every future reset
 - **Save export/import** — clipboard-based base64 save codes alongside `localStorage` auto-save
 - **⚙ Settings menu** — save/export/import, a light/dark theme toggle, a UI scale slider, an in-game changelog, and a GitHub link, all persisted locally
 - **📖 In-game guide** — a condensed how-to-play reference covering every system, opened straight from the HUD
@@ -289,6 +290,11 @@ Push to GitHub and enable Pages for the `main` branch.
 
 Versioning follows `MAJOR.MINOR.PATCH`: **major** bumps for breaking/structural changes (save format, core loop rework), **minor** bumps for new features (printers, products, systems), **patch** bumps for balance tweaks and bug fixes.
 
+### v1.11.0
+- Added a progress bar toward the next Scale Up directly on the prestige card, alongside the existing required/current lifetime-earnings figures
+- New meta-currency, 💠 **Prestigium**: earned every time you Scale Up (the longer you run past the requirement before cashing in, the more you earn), and never lost to a reset
+- New 10-node **Prestigium tech tree** on the Upgrades tab, spent with Prestigium instead of cash — permanent starting-cash/filament bonuses, permanent value/speed multipliers, a lower Scale Up requirement, bigger future Prestigium payouts, and a capstone node — every node researched here survives every future Scale Up, unlike the regular tech tree
+
 ### v1.10.1
 - Added an in-game 📖 GUIDE, opened from the top-right HUD — a condensed version of this README's Printers/Products/Materials/Workshop Space/Exhibitions/Finishing Studio/Workforce/Marketing/Commissions/Bulk Orders/Random Events/Keyboard Shortcuts sections, for players who never visit GitHub
 
@@ -401,9 +407,8 @@ Versioning follows `MAJOR.MINOR.PATCH`: **major** bumps for breaking/structural 
 - **Mobile-friendly layout** — touch-sized controls and a responsive layout for phones/tablets
 - **Cloud save sync** — optional account-based save backup so progress isn't tied to one browser
 - **Leaderboards** — compare prestige count / net worth with other players (needs a backend)
-- **More prestige layers** — a second "meta" prestige beyond `PRESTIGE1` for long-term progression
 - **Statistics dashboard** — per-product profit graphs, printtime breakdown
-- **Themes/skins** — alternate UI palettes or a light mode
+- **Themes/skins** — alternate UI palettes beyond the existing light/dark toggle
 - **Mod/community recipes** — JSON-defined custom products or printers for self-hosters
 - **Test coverage** — no automated tests currently exist for the game logic
 - **`.env` configuration** — no runtime settings are configurable yet (e.g. server port is hardcoded with an env override)

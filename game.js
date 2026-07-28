@@ -1,7 +1,7 @@
 // ========================
 // GAME DATA
 // ========================
-const VERSION = '1.10.1';
+const VERSION = '1.11.0';
 
 // PRODUCT_BASES are the 20 "common" items — the plain, baseline version of each category.
 // Each one also spawns 4 variant tiers (see PRODUCT_VARIANTS below) so that almost no two
@@ -167,6 +167,22 @@ const UPGRADES = {
   resin_wash:     { id:'resin_wash',     cat:'quality',    name:'UV Cure Station',      icon:'☀️', cost:5500,  desc:'Professional resin finish.', effect:'+50% resin value',     req:['post_proc'],     fn:s=>{s.resinBonus*=1.5} },
   museum_finish:  { id:'museum_finish',  cat:'quality',    name:'Museum-Grade Finish',  icon:'🏛️', cost:9000,  desc:'Gallery-quality resin post-processing.', effect:'+30% resin value', req:['resin_wash'],   fn:s=>{s.resinBonus*=1.3} },
   nano_coating:   { id:'nano_coating',   cat:'quality',    name:'Nano-Ceramic Coating', icon:'🧪', cost:16000, desc:'A microscopic protective coating applied to every finished piece.', effect:'+15% value on all products', req:['museum_finish'], fn:s=>{s.valueMult*=1.15} },
+};
+
+// Spent with 💠 Prestigium, a meta-currency earned on Scale Up. Unlike UPGRADES, these nodes
+// (and the currency itself) survive every reset — their fn() is re-applied to the fresh state
+// by tryPrestige() right after rebuilding G, so the bonuses compound across every future run.
+const PRESTIGIUM_UPGRADES = {
+  head_start:      { id:'head_start',      cat:'prestigium', name:'Seed Capital',           icon:'💰', cost:5,   desc:'A cash reserve carried into every future run.', effect:'+$500 starting money',  req:[], fn:s=>{s.money+=500} },
+  filament_reserve:{ id:'filament_reserve',cat:'prestigium', name:'Filament Reserve',        icon:'🧵', cost:5,   desc:'A stockpile of black PLA carried into every future run.', effect:'+2kg starting filament', req:[], fn:s=>{s.filamentStock.pla.black+=2000} },
+  permanent_value: { id:'permanent_value', cat:'prestigium', name:'Master Craftsmanship',    icon:'✨', cost:15,  desc:'Techniques that never leave you, no matter how many times you restart.', effect:'+10% permanent value',  req:['head_start'], fn:s=>{s.valueMult*=1.1} },
+  permanent_speed: { id:'permanent_speed', cat:'prestigium', name:'Muscle Memory',           icon:'⚡', cost:15,  desc:'Years of practice printing faster, permanently.', effect:'+10% permanent speed',  req:['head_start'], fn:s=>{s.speedMult*=1.1} },
+  lower_threshold: { id:'lower_threshold', cat:'prestigium', name:'Industry Connections',    icon:'🤝', cost:25,  desc:'Contacts who make the next Scale Up easier to reach.', effect:'−10% Scale Up requirement', req:['permanent_value','permanent_speed'], fn:s=>{s.prestigeReqMult=(s.prestigeReqMult||1)*0.9} },
+  prestigium_boost:{ id:'prestigium_boost',cat:'prestigium', name:'Legacy Planning',         icon:'📜', cost:30,  desc:'Every future Scale Up pays out more Prestigium.', effect:'+15% Prestigium earned per Scale Up', req:['lower_threshold'], fn:s=>{s.prestigiumGainMult=(s.prestigiumGainMult||1)*1.15} },
+  auto_storefront: { id:'auto_storefront', cat:'prestigium', name:'Standing Storefront',     icon:'🛍️', cost:40,  desc:'Your online shop and print queue are already set up from day one.', effect:'Start every run with CraftBazaar Shop + Auto Print', req:['permanent_value'], fn:s=>{s.upgrades.etsy_store=true; s.valueMult*=1.12; s.unlockedAutoSell=true; s.automationOwned.auto_print=true; s.automationActive.auto_print=true;} },
+  free_room:       { id:'free_room',       cat:'prestigium', name:'Inherited Workshop',      icon:'🏠', cost:50,  desc:'Extra shelving that\'s just always there now.', effect:'+3 permanent room capacity', req:['filament_reserve'], fn:s=>{s.roomCapacityBonus=(s.roomCapacityBonus||0)+3} },
+  fail_immunity:   { id:'fail_immunity',   cat:'prestigium', name:'Veteran Instincts',       icon:'🛡️', cost:60,  desc:'You\'ve seen every way a print can fail, and now avoid most of them.', effect:'−30% permanent fail rate', req:['prestigium_boost','auto_storefront'], fn:s=>{s.failRate*=0.7} },
+  legendary_status:{ id:'legendary_status',cat:'prestigium', name:'Legendary Status',        icon:'👑', cost:100, desc:'Your name alone sells product. The ultimate payoff for repeat Scale Ups.', effect:'+25% permanent value AND speed', req:['fail_immunity','free_room'], fn:s=>{s.valueMult*=1.25; s.speedMult*=1.25} },
 };
 
 const AUTOMATION_ITEMS = {
@@ -410,6 +426,13 @@ function defaultState(shopName) {
     // Prestige
     prestigeCount: 0,
     prestigeMult: 1.0,
+    prestigeReqMult: 1.0,
+    // Prestigium — a meta-currency earned on Scale Up that survives every reset, spent on its
+    // own permanent tech tree (PRESTIGIUM_UPGRADES) whose effects get re-applied to the fresh
+    // state every time tryPrestige() rebuilds G.
+    prestigium: 0,
+    prestigiumUpgrades: {},
+    prestigiumGainMult: 1.0,
     // Achievements
     achievements: [],
     // Income tracking
@@ -533,6 +556,10 @@ function migrateState(state) {
   if (state.autoFilamentThreshold === undefined) state.autoFilamentThreshold = 600;
   if (state.autoFilamentQty === undefined) state.autoFilamentQty = 1000;
   if (!state.activeOrders) state.activeOrders = [];
+  if (state.prestigeReqMult === undefined) state.prestigeReqMult = 1.0;
+  if (state.prestigium === undefined) state.prestigium = 0;
+  if (!state.prestigiumUpgrades) state.prestigiumUpgrades = {};
+  if (state.prestigiumGainMult === undefined) state.prestigiumGainMult = 1.0;
   // auto_sell was replaced by auto_liquidate — carry the purchase across so players don't lose
   // the automation slot they already paid for.
   if (state.automationOwned && state.automationOwned.auto_sell && !state.automationOwned.auto_liquidate) {
@@ -1247,6 +1274,22 @@ function buyUpgrade(id, event) {
   spawnFloat(`-$${fmtNum(upg.cost)}`, event, 'spend');
 }
 
+// Prestigium upgrades persist across every Scale Up — bought once, they stay bought forever,
+// so purchasing just marks them owned and applies the effect immediately (tryPrestige()
+// re-applies every owned one's fn() again right after each future reset).
+function buyPrestigiumUpgrade(id, event) {
+  const upg = PRESTIGIUM_UPGRADES[id];
+  if (!upg || G.prestigiumUpgrades[id]) return;
+  if (G.prestigium < upg.cost) { toast('Not enough Prestigium!', 'error'); return; }
+  const unmet = (upg.req || []).filter(r => !G.prestigiumUpgrades[r]);
+  if (unmet.length > 0) { toast('Requirements not met!', 'warning'); return; }
+  G.prestigium -= upg.cost;
+  G.prestigiumUpgrades[id] = true;
+  upg.fn(G);
+  toast(`💠 ${upg.name} researched!`, 'success');
+  spawnFloat(`-💠${upg.cost}`, event, 'spend');
+}
+
 // ========================
 // AUTOMATION
 // ========================
@@ -1476,19 +1519,39 @@ function updatePhase() {
   G.phase = phase;
 }
 
+function getPrestigeRequirement() {
+  return 100000 * Math.pow(5, G.prestigeCount) * (G.prestigeReqMult || 1);
+}
+
+// The longer you run past the requirement before cashing in, the more Prestigium you earn —
+// rewards letting a run breathe instead of Scaling Up the instant you cross the line.
+function calcPrestigiumGain(req) {
+  const overshoot = Math.max(1, G.lifetimeEarned / req);
+  return Math.max(5, Math.floor(8 * Math.sqrt(overshoot) * (G.prestigiumGainMult || 1)));
+}
+
 function tryPrestige() {
-  const req = 100000 * Math.pow(5, G.prestigeCount);
+  const req = getPrestigeRequirement();
   if (G.lifetimeEarned < req) { toast(`Need $${fmtNum(req)} lifetime earned to Scale Up!`, 'warning'); return; }
-  if (!confirm(`SCALE UP your business?\n\nYou'll restart with:\n• ×${(1.5*(G.prestigeCount+1)).toFixed(1)} permanent earnings multiplier\n• $500 starting cash\n• 800g filament\n\nAll printers, upgrades, and unlocks will reset.`)) return;
+  const prestigiumGain = calcPrestigiumGain(req);
+  if (!confirm(`SCALE UP your business?\n\nYou'll restart with:\n• ×${(1.5*(G.prestigeCount+1)).toFixed(1)} permanent earnings multiplier\n• $500 starting cash\n• 800g filament\n• +${prestigiumGain} 💠 Prestigium (spend on the permanent Prestigium tech tree)\n\nAll printers, upgrades, and unlocks reset — Prestigium and its tech tree never do.`)) return;
   const newMult = 1.0 + 0.5 * (G.prestigeCount + 1);
   const shopName = G.shopName;
   const pCount = G.prestigeCount + 1;
+  const carryPrestigium = (G.prestigium || 0) + prestigiumGain;
+  const carryPrestigiumUpgrades = G.prestigiumUpgrades || {};
   G = defaultState(shopName);
   G.prestigeMult = newMult;
   G.prestigeCount = pCount;
   G.money = 500;
   G.filamentStock.pla.black = 800;
-  toast(`⬆️ Scaled Up! ×${newMult.toFixed(1)} earnings multiplier active!`, 'success');
+  G.prestigium = carryPrestigium;
+  G.prestigiumUpgrades = carryPrestigiumUpgrades;
+  // Re-apply every already-owned Prestigium upgrade's effect to the freshly reset state.
+  for (const id of Object.keys(G.prestigiumUpgrades)) {
+    if (G.prestigiumUpgrades[id] && PRESTIGIUM_UPGRADES[id]) PRESTIGIUM_UPGRADES[id].fn(G);
+  }
+  toast(`⬆️ Scaled Up! ×${newMult.toFixed(1)} earnings multiplier active! +${prestigiumGain} 💠 Prestigium`, 'success');
   saveGame(true);
 }
 
@@ -2008,33 +2071,42 @@ const TECH_NODE_H = 122;
 const TECH_COL_GAP = 56;
 const TECH_ROW_GAP = 18;
 
-// Depth = how many prerequisite "hops" deep a node is within its own category — a node with no
+// Depth = how many prerequisite "hops" deep a node is within its own set — a node with no
 // req is depth 0; everything branches rightward from there based on which node(s) unlock it.
-function computeTechDepths(catUpgradeIds) {
-  const idSet = new Set(catUpgradeIds);
+// `defs` is the node definition dict (UPGRADES or PRESTIGIUM_UPGRADES); `ids` restricts depth
+// computation to a specific subset (a single category lane, or the whole PRESTIGIUM_UPGRADES set).
+function computeNodeDepths(ids, defs) {
+  const idSet = new Set(ids);
   const depths = {};
   function depth(uid) {
     if (depths[uid] !== undefined) return depths[uid];
     depths[uid] = 0; // cycle guard
-    const reqs = (UPGRADES[uid].req || []).filter(r => idSet.has(r));
+    const reqs = (defs[uid].req || []).filter(r => idSet.has(r));
     depths[uid] = reqs.length ? 1 + Math.max(...reqs.map(depth)) : 0;
     return depths[uid];
   }
-  catUpgradeIds.forEach(depth);
+  ids.forEach(depth);
   return depths;
 }
 
-function renderTechLane(catId) {
-  const catUpgradeIds = Object.keys(UPGRADES).filter(uid => UPGRADES[uid].cat === catId);
-  const depths = computeTechDepths(catUpgradeIds);
+function computeTechDepths(catUpgradeIds) {
+  return computeNodeDepths(catUpgradeIds, UPGRADES);
+}
+
+// Generic node-lane renderer shared by the money-funded tech tree (UPGRADES) and the
+// Prestigium tech tree (PRESTIGIUM_UPGRADES) — `owned` is the G dict tracking purchases
+// (G.upgrades / G.prestigiumUpgrades), `balance` the currently spendable amount of whichever
+// currency this lane spends, `buyFn` the onclick handler name, and `fmtCost` how to render cost.
+function renderNodeLane(ids, defs, owned, balance, buyFn, fmtCost) {
+  const depths = computeNodeDepths(ids, defs);
   const byDepth = {};
-  for (const uid of catUpgradeIds) (byDepth[depths[uid]] = byDepth[depths[uid]] || []).push(uid);
+  for (const uid of ids) (byDepth[depths[uid]] = byDepth[depths[uid]] || []).push(uid);
   const maxDepth = Math.max(...Object.keys(byDepth).map(Number));
   const maxSlots = Math.max(...Object.values(byDepth).map(arr => arr.length));
 
   const pos = {};
-  for (const [d, ids] of Object.entries(byDepth)) {
-    ids.forEach((uid, slot) => {
+  for (const [d, dIds] of Object.entries(byDepth)) {
+    dIds.forEach((uid, slot) => {
       pos[uid] = { x: Number(d) * (TECH_NODE_W + TECH_COL_GAP), y: slot * (TECH_NODE_H + TECH_ROW_GAP) };
     });
   }
@@ -2043,20 +2115,20 @@ function renderTechLane(catId) {
 
   let lines = '';
   let nodes = '';
-  for (const uid of catUpgradeIds) {
-    const upg = UPGRADES[uid];
-    const bought = !!G.upgrades[uid];
-    const reqsMet = (upg.req || []).every(r => G.upgrades[r]);
-    const canAfford = G.money >= upg.cost;
+  for (const uid of ids) {
+    const node = defs[uid];
+    const bought = !!owned[uid];
+    const reqsMet = (node.req || []).every(r => owned[r]);
+    const canAfford = balance >= node.cost;
     const { x, y } = pos[uid];
 
-    for (const reqId of (upg.req || [])) {
+    for (const reqId of (node.req || [])) {
       if (!pos[reqId]) continue;
       const rp = pos[reqId];
       const x1 = rp.x + TECH_NODE_W, y1 = rp.y + TECH_NODE_H / 2;
       const x2 = x, y2 = y + TECH_NODE_H / 2;
       const midX = (x1 + x2) / 2;
-      const done = bought && G.upgrades[reqId];
+      const done = bought && owned[reqId];
       lines += `<path d="M${x1},${y1} C${midX},${y1} ${midX},${y2} ${x2},${y2}" style="fill:none;stroke:${done ? 'var(--green)' : 'var(--border2)'};stroke-width:2"/>`;
     }
 
@@ -2065,15 +2137,15 @@ function renderTechLane(catId) {
     else if (!reqsMet) cls += ' locked';
     else if (canAfford) cls += ' affordable';
 
-    nodes += `<div class="${cls}" style="left:${x}px;top:${y}px;width:${TECH_NODE_W}px;height:${TECH_NODE_H}px" title="${upg.desc}">
-      <div class="tech-node-icon">${upg.icon}</div>
-      <div class="tech-node-name">${upg.name}</div>
-      <div class="tech-node-effect">${upg.effect}</div>
+    nodes += `<div class="${cls}" style="left:${x}px;top:${y}px;width:${TECH_NODE_W}px;height:${TECH_NODE_H}px" title="${node.desc}">
+      <div class="tech-node-icon">${node.icon}</div>
+      <div class="tech-node-name">${node.name}</div>
+      <div class="tech-node-effect">${node.effect}</div>
       <div class="tech-node-foot">
         ${bought
           ? `<span class="bought-tag">✓ DONE</span>`
           : reqsMet
-            ? `<button class="btn btn-primary btn-xs" onclick="buyUpgrade('${uid}', event)" ${!canAfford ? 'disabled' : ''}>$${fmtNum(upg.cost)}</button>`
+            ? `<button class="btn btn-primary btn-xs" onclick="${buyFn}('${uid}', event)" ${!canAfford ? 'disabled' : ''}>${fmtCost(node.cost)}</button>`
             : `<span class="tech-locked">🔒 Locked</span>`}
       </div>
     </div>`;
@@ -2083,6 +2155,15 @@ function renderTechLane(catId) {
     <svg class="tech-lines" width="${canvasW}" height="${canvasH}">${lines}</svg>
     ${nodes}
   </div></div>`;
+}
+
+function renderTechLane(catId) {
+  const catUpgradeIds = Object.keys(UPGRADES).filter(uid => UPGRADES[uid].cat === catId);
+  return renderNodeLane(catUpgradeIds, UPGRADES, G.upgrades, G.money, 'buyUpgrade', c => '$' + fmtNum(c));
+}
+
+function renderPrestigiumLane() {
+  return renderNodeLane(Object.keys(PRESTIGIUM_UPGRADES), PRESTIGIUM_UPGRADES, G.prestigiumUpgrades, G.prestigium, 'buyPrestigiumUpgrade', c => '💠' + c);
 }
 
 function renderUpgrades() {
@@ -2106,20 +2187,30 @@ function renderUpgrades() {
   }
 
   // Prestige
-  const nextReq = 100000 * Math.pow(5, G.prestigeCount);
+  const nextReq = getPrestigeRequirement();
+  const prestigeProgress = Math.min(100, (G.lifetimeEarned / nextReq) * 100);
+  const readyToScale = G.lifetimeEarned >= nextReq;
+  const projectedGain = calcPrestigiumGain(nextReq);
   html += `<div class="cat-header"><div class="cat-label">⬆️ SCALE UP (PRESTIGE)</div><div class="cat-line"></div></div>
   <div class="card" style="max-width:500px">
     <div class="card-header"><div class="card-icon">⬆️</div>
       <div><div class="card-title">Scale Up Your Business</div>
-      <div class="card-sub">Reset for a permanent earnings multiplier</div></div>
+      <div class="card-sub">Reset for a permanent earnings multiplier + 💠 Prestigium</div></div>
     </div>
-    <div class="card-body">Restart from scratch with a ×${(1.5*(G.prestigeCount+1)).toFixed(1)} permanent earnings multiplier. All printers, upgrades and products reset — but you keep your multiplier.</div>
+    <div class="card-body">Restart from scratch with a ×${(1.5*(G.prestigeCount+1)).toFixed(1)} permanent earnings multiplier and ${readyToScale ? `+${projectedGain}` : 'some'} 💠 Prestigium to spend on the permanent tree below. All printers, upgrades and products reset — your multiplier and Prestigium tree don't.</div>
+    <div class="progress-track" style="margin:4px 0 6px"><div class="progress-fill" style="width:${prestigeProgress}%;background:var(--purple)"></div></div>
+    <div class="tip" style="margin-bottom:10px">${prestigeProgress.toFixed(1)}% to next Scale Up ($${fmtNum(G.lifetimeEarned)} / $${fmtNum(nextReq)})</div>
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
       <div><div class="lbl">Lifetime Required</div><div class="val-big" style="color:var(--purple)">$${fmtNum(nextReq)}</div></div>
       <div><div class="lbl">Your Lifetime</div><div class="val-big" style="color:var(--gold)">$${fmtNum(G.lifetimeEarned)}</div></div>
-      <button class="btn btn-sm" style="background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.3);color:var(--purple)" onclick="tryPrestige()" ${G.lifetimeEarned<nextReq?'disabled':''}>SCALE UP ⬆️</button>
+      <button class="btn btn-sm" style="background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.3);color:var(--purple)" onclick="tryPrestige()" ${!readyToScale?'disabled':''}>SCALE UP ⬆️</button>
     </div>
   </div>`;
+
+  // Prestigium tech tree — spent with the meta-currency earned above; survives every reset.
+  html += `<div class="cat-header"><div class="cat-label">💠 PRESTIGIUM TECH TREE — ${G.prestigium} 💠 AVAILABLE</div><div class="cat-line"></div></div>
+  <div class="tip" style="margin-bottom:10px">Permanent upgrades bought with 💠 Prestigium — earned only by Scaling Up, and never lost to a reset. The longer you run past the Scale Up requirement before cashing in, the more you earn.</div>
+  ${renderPrestigiumLane()}`;
 
   morph(wrap, html);
 }
@@ -2324,6 +2415,7 @@ function renderStats() {
     <div class="stat-card"><div class="stat-card-lbl">Upgrades Bought</div><div class="stat-card-val">${Object.keys(G.upgrades).length} / ${Object.keys(UPGRADES).length}</div></div>
     <div class="stat-card"><div class="stat-card-lbl">Play Time</div><div class="stat-card-val" style="font-size:15px">${uptime}</div></div>
     <div class="stat-card"><div class="stat-card-lbl">Scale Ups</div><div class="stat-card-val" style="color:var(--purple)">${G.prestigeCount}</div></div>
+    <div class="stat-card"><div class="stat-card-lbl">💠 Prestigium</div><div class="stat-card-val" style="color:var(--purple);font-size:15px">${G.prestigium} (${Object.keys(G.prestigiumUpgrades).length}/${Object.keys(PRESTIGIUM_UPGRADES).length} researched)</div></div>
     <div class="stat-card"><div class="stat-card-lbl">Items Finished</div><div class="stat-card-val" style="color:var(--purple)">${G.totalProcessed.toLocaleString()}</div></div>
     <div class="stat-card"><div class="stat-card-lbl">Followers</div><div class="stat-card-val" style="color:var(--blue)">${G.followers.toLocaleString()}</div></div>
     <div class="stat-card"><div class="stat-card-lbl">Successful Print Mass</div><div class="stat-card-val" style="color:var(--green)">${fmtG(G.totalMassSuccess)}</div></div>
@@ -2462,6 +2554,7 @@ const DEBUG_CODES = {
   'PRINTFARM':  ()=>{ ['ender3','bambu_a1','bambu_x1c'].forEach(t=>{ if(G.printers.length<getRoomCapacity()) buyPrinter(t) }); dbLog('Print farm spawned!', 'ok') },
   'PHASE5':     ()=>{ G.lifetimeEarned = 2000000; dbLog('Phase set to EMPIRE', 'ok') },
   'PRESTIGE1':  ()=>{ G.prestigeMult = 1.5; G.prestigeCount = 1; dbLog('Prestige 1 applied', 'ok') },
+  'PRESTIGIUM': ()=>{ G.prestigium += 100; dbLog('Added 100 Prestigium', 'ok') },
   'CLEARINV':   ()=>{ G.inventory = {}; dbLog('Inventory cleared', 'ok') },
   'GOVIRAL':    ()=>{ G.timelapses += 5; G.followers += 500; dbLog('Added 5 timelapse clips and 500 followers', 'ok') },
   'EXPAND':     ()=>{ Object.keys(OFFICE_SPACES).forEach(id=>{ G.rentedSpaces[id]=true; }); G.roomCapacityBonus=6; dbLog('All workshop space unlocked!', 'ok') },
@@ -2469,7 +2562,7 @@ const DEBUG_CODES = {
   'EXPORT':     ()=>{ exportSave(); dbLog('Save code copied to clipboard', 'ok') },
   'IMPORT':     ()=>{ importSaveFromPrompt(); },
   'VERSION':    ()=>dbLog('3DP Tycoon v' + VERSION, 'info'),
-  'HELP':       ()=>dbLog('Codes: FILLAMENT MONEYBAGS FATSTACK SPEEDRUN UNLOCKALL RESEARCHALL AUTOALL GODMODE PRINTFARM PHASE5 PRESTIGE1 CLEARINV GOVIRAL EXPAND EXPO EXPORT IMPORT', 'info'),
+  'HELP':       ()=>dbLog('Codes: FILLAMENT MONEYBAGS FATSTACK SPEEDRUN UNLOCKALL RESEARCHALL AUTOALL GODMODE PRINTFARM PHASE5 PRESTIGE1 PRESTIGIUM CLEARINV GOVIRAL EXPAND EXPO EXPORT IMPORT', 'info'),
 };
 
 function toggleDebug() {
@@ -2512,6 +2605,11 @@ const GITHUB_PROFILE_URL = 'https://github.com/TheBooleanJulian';
 // change) since the full detailed history lives in README.md; this is just enough to answer
 // "what's new" without leaving the game.
 const CHANGELOG = [
+  { version:'1.11.0', notes:[
+    'Added a progress bar toward the next Scale Up right on the prestige card',
+    'New 💠 Prestigium meta-currency: earned on every Scale Up (more for waiting longer past the requirement), never lost to a reset',
+    'New 10-node Prestigium tech tree (permanent starting bonuses, permanent value/speed, lower Scale Up requirement, bigger future payouts, and more) — survives every future Scale Up',
+  ]},
   { version:'1.10.1', notes:[
     'Added an in-game 📖 GUIDE (top-right HUD) covering how to play, printers, products, materials, workshop space, exhibitions, the Finishing Studio, workforce, marketing, commissions, bulk orders, random events, and keyboard shortcuts — no need to read the README',
   ]},
@@ -2629,6 +2727,8 @@ const GUIDE_SECTIONS = [
   { icon:'🖥️', title:'CUSTOM COMMISSIONS', html:`<p>Research <strong>3D Modelling Service</strong> (Business tree) to start receiving custom commission requests. Accept print-only for the base reward, or accept with the modelling upsell for an extra fee representing the CAD design work.</p>` },
   { icon:'📬', title:'BULK ORDERS', html:`<p>Accepting a bulk order commits you to a standing goal, not an instant transaction — build (or already have) enough stock of the requested product before the timer runs out and it fulfills automatically. Track everything currently owed under <strong>ACTIVE ORDERS</strong> on the Products tab.</p>` },
   { icon:'🎲', title:'RANDOM EVENTS', html:`<p>Beyond bulk orders, exhibitions, and commissions, your shop is subject to periodic random swings — filament discounts/price hikes, equipment malfunctions or freshly-serviced nozzles (fail-rate up/down), press features or viral screenshots (followers), rave reviews/trending hashtags/shipping delays (demand), and firmware tweaks/maintenance days (print speed). Active ones show as chips with a countdown under the top HUD.</p>` },
+  { icon:'⬆️', title:'SCALE UP & PRESTIGIUM', html:`<p>Once your lifetime earnings hit the requirement (Upgrades tab), Scale Up resets your printers, upgrades, and stock in exchange for a permanent earnings multiplier — plus 💠 <strong>Prestigium</strong>, a currency that's never lost to a reset.</p>
+  <p>Spend Prestigium on its own permanent tech tree (also on the Upgrades tab, below Scale Up) — starting cash/filament, permanent value/speed bonuses, a lower Scale Up requirement, bigger future Prestigium payouts, and more. Every node you research there stays researched through every future Scale Up. The longer you run past the requirement before cashing in, the more Prestigium that Scale Up pays out.</p>` },
   { icon:'🔑', title:'KEYBOARD SHORTCUTS', html:`<table class="guide-table"><tr><th>Key</th><th>Action</th></tr>
   <tr><td><span class="guide-key">\`</span></td><td>Open debug console</td></tr>
   <tr><td><span class="guide-key">1–6</span></td><td>Switch tabs (Printers, Products, Upgrades, Automation, Studio, Stats)</td></tr>
