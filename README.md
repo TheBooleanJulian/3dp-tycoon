@@ -8,7 +8,7 @@
 
 An idle incremental business simulator where you grow a home-based 3D printing operation into a full manufacturing empire.
 
-![Version](https://img.shields.io/badge/version-1.11.0-00D4C8)
+![Version](https://img.shields.io/badge/version-1.12.0-00D4C8)
 ![JavaScript](https://img.shields.io/badge/-JavaScript-F7DF1E?logo=javascript&logoColor=black)
 ![Node.js](https://img.shields.io/badge/-Node.js-339933?logo=node.js&logoColor=white)
 ![License](https://img.shields.io/badge/license-AGPLv3%20%2B%20Commercial-00D4C8.svg)
@@ -57,6 +57,7 @@ An idle incremental business simulator where you grow a home-based 3D printing o
 - **Prestige** — reset for a permanent earnings multiplier and replay with a head start, with a live progress bar toward the next Scale Up
 - **💠 Prestigium meta-currency** — earned on every Scale Up (more for waiting longer past the requirement) and spent on its own 10-node permanent tech tree that survives every future reset
 - **Save export/import** — clipboard-based base64 save codes alongside `localStorage` auto-save
+- **☁ Cloud Save** (optional) — link a save to a short code and pick it up on any other browser/device, auto-syncing from then on; needs a Postgres-linked deployment, degrades gracefully to local-only saves otherwise
 - **⚙ Settings menu** — save/export/import, a light/dark theme toggle, a UI scale slider, an in-game changelog, and a GitHub link, all persisted locally
 - **📖 In-game guide** — a condensed how-to-play reference covering every system, opened straight from the HUD
 - **Buffs & debuffs bar** — every active timed effect (viral/publicity boosts, random-event swings) shown live under the HUD with a countdown, instead of only appearing as a toast
@@ -226,7 +227,8 @@ Open the debug console with `` ` `` and enter:
 | Layer | Choice |
 |---|---|
 | Frontend | Plain HTML + CSS + JavaScript — classic `<script src>`/`<link>` tags, no bundler, no framework |
-| Server | Node.js (static file server) |
+| Server | Node.js (static file server + a small `/api/save/*` JSON API for cloud saves) |
+| Cloud save DB (optional) | PostgreSQL, via the `pg` driver — only used if a connection is configured |
 
 ## Quick Start
 
@@ -272,6 +274,7 @@ Push to GitHub and enable Pages for the `main` branch.
 2. Connect repo to Zeabur
 3. Select **Node.js** runtime — it auto-detects `server.js`
 4. Deploy!
+5. **Optional — enable ☁ Cloud Save:** add a **PostgreSQL** service to the same Zeabur project and link it to the Node service. Zeabur injects the connection details as environment variables automatically; `server.js` picks up either a full connection string (`POSTGRES_CONNECTION_STRING` or `DATABASE_URL`) or the discrete `POSTGRES_HOST`/`POSTGRES_PORT`/`POSTGRES_USERNAME`/`POSTGRES_PASSWORD`/`POSTGRES_DATABASE` vars — whichever your Postgres template provides. No manual schema setup needed: the `cloud_saves` table is created automatically on first boot. Without a linked database, the game runs exactly as before — the ☁ Cloud Save buttons just report that it isn't configured.
 
 ---
 
@@ -280,15 +283,24 @@ Push to GitHub and enable Pages for the `main` branch.
 - **Auto-saves** every 60 seconds
 - **Auto-saves** on tab close / page hide
 - Manual save with `Ctrl+S`, or **💾 SAVE** in the ⚙ Settings menu (HUD)
-- Save data stored in the browser's `localStorage` — **there is no server or cloud backend**, so saves never leave the browser they were created in, including on the [live site](https://3dp-tycoon.thebooleanjulian.dev/). Cloud sync isn't implemented yet (see Future Roadmap below).
-- ⚠️ **No cross-device/cross-browser sync.** A different browser, a different device, a private/incognito window, or clearing site data will not see an existing save. Deploying new versions of the game is safe (it doesn't touch anyone's `localStorage`), but switching domains/ports, or the player clearing their browser data, will orphan it.
-- Use **⬆ EXPORT** (⚙ Settings menu, or the `EXPORT` debug code) to copy a portable base64 save code to your clipboard, and **⬇ IMPORT** (⚙ Settings menu, splash-screen button, or `IMPORT` debug code) to restore it — this is the only way to back up a save or move it to another browser/device
+- Save data is stored in the browser's `localStorage` first, always — that part never needs a server
+- ⚠️ **No cross-device/cross-browser sync by default.** A different browser, a different device, a private/incognito window, or clearing site data will not see an existing local save. Deploying new versions of the game is safe (it doesn't touch anyone's `localStorage`), but switching domains/ports, or the player clearing their browser data, will orphan it.
+- Use **⬆ EXPORT** (⚙ Settings menu, or the `EXPORT` debug code) to copy a portable base64 save code to your clipboard, and **⬇ IMPORT** (⚙ Settings menu, splash-screen button, or `IMPORT` debug code) to restore it — a manual, one-off way to back up a save or move it to another browser/device
+- **☁ Cloud Save** (optional, requires a Postgres-linked deployment — see Zeabur setup above): **CREATE CLOUD SAVE** (⚙ Settings menu) uploads your current save and gives you back a short code (10 characters, e.g. `7WGD-DDWD-2U`-style but unhyphenated). Enter that code with **🔗 LOAD FROM CODE** (Settings, or **☁ Load Cloud Save** on the splash screen) on any other browser/device to pick it up — from then on, every save/autosave on that browser also pushes to the cloud automatically. **⚠️ Treat a cloud save code like a password** — anyone who has it can load *or overwrite* that save; there's no account/login layer behind it, by design (see the trade-offs below).
+  - **Why a code instead of accounts:** no signup/login friction, no password to forget, and it keeps the project dependency-free of any third-party auth provider. The trade-off is that a leaked code is a full read/write credential with no recovery mechanism.
+  - Cloud saves are stored as a single `cloud_saves` table (`code TEXT PRIMARY KEY`, `data JSONB`, `updated_at TIMESTAMPTZ`) — last write wins, same as local autosave.
+  - The API (`/api/save/new` to create, `GET /api/save/:code` to fetch, `PUT /api/save/:code` to overwrite) is rate-limited per IP and caps upload size at 1MB.
 
 ---
 
 ## 📋 Changelog
 
 Versioning follows `MAJOR.MINOR.PATCH`: **major** bumps for breaking/structural changes (save format, core loop rework), **minor** bumps for new features (printers, products, systems), **patch** bumps for balance tweaks and bug fixes.
+
+### v1.12.0
+- Added optional **☁ Cloud Save**: link your save to a short code (Settings menu → CREATE CLOUD SAVE) and load it on any other browser/device with LOAD FROM CODE — auto-syncs on every save/autosave from then on
+- Backed by a small `/api/save/*` JSON API in `server.js` and a PostgreSQL table, only active when a DB is linked (e.g. via a Zeabur Postgres service) — falls back to local-only saves with a clear message everywhere else, including the file:// version
+- Splash screen gained a **☁ Load Cloud Save** button alongside Import Save Code
 
 ### v1.11.0
 - Added a progress bar toward the next Scale Up directly on the prestige card, alongside the existing required/current lifetime-earnings figures
@@ -405,7 +417,6 @@ Versioning follows `MAJOR.MINOR.PATCH`: **major** bumps for breaking/structural 
 
 - **Sound & music** — printer hum, sale chimes, ambient workshop track with a mute toggle
 - **Mobile-friendly layout** — touch-sized controls and a responsive layout for phones/tablets
-- **Cloud save sync** — optional account-based save backup so progress isn't tied to one browser
 - **Leaderboards** — compare prestige count / net worth with other players (needs a backend)
 - **Statistics dashboard** — per-product profit graphs, printtime breakdown
 - **Themes/skins** — alternate UI palettes beyond the existing light/dark toggle

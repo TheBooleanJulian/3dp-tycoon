@@ -371,6 +371,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .settings-box .modal-title{text-align:center}
 .settings-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
 .settings-label{font-family:var(--font-mono);font-size:12px;color:var(--text2);letter-spacing:.05em}
+.cloud-status{font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--text3)}
 .theme-toggle{display:flex;gap:6px}
 .theme-toggle .btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
 .settings-scale-control{display:flex;align-items:center;gap:10px}

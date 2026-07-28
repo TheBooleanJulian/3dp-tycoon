@@ -1,7 +1,7 @@
 // ========================
 // GAME DATA
 // ========================
-const VERSION = '1.11.0';
+const VERSION = '1.12.0';
 
 // PRODUCT_BASES are the 20 "common" items — the plain, baseline version of each category.
 // Each one also spawns 4 variant tiers (see PRODUCT_VARIANTS below) so that almost no two
@@ -2452,6 +2452,7 @@ function saveGame(silent) {
   } catch(e) {
     toast('⚠️ Save failed! ' + e.message, 'error');
   }
+  syncCloudSave(true); // best-effort, silent — no-op if no cloud code is linked
 }
 
 function loadGame() {
@@ -2540,6 +2541,115 @@ function importSaveFromPrompt() {
 }
 
 // ========================
+// CLOUD SAVE (optional — needs the hosted/server-run version of the game with a Postgres DB
+// linked on the backend; see server.js. Silently unavailable over file:// or a plain static
+// host with no DB configured — every function here degrades to a friendly toast in that case.)
+// ========================
+const CLOUD_CODE_KEY = '3dp_cloud_code';
+const CLOUD_AVAILABLE = typeof location !== 'undefined' && /^https?:$/.test(location.protocol);
+
+function getCloudCode() { return localStorage.getItem(CLOUD_CODE_KEY) || ''; }
+
+function updateCloudStatusUI() {
+  const status = document.getElementById('cloud-status');
+  if (!status) return;
+  const code = getCloudCode();
+  status.textContent = code ? `Linked: ${code}` : 'Not linked';
+  status.style.color = code ? 'var(--green)' : 'var(--text3)';
+}
+
+// Uploads the current save as a brand new cloud entry and links this browser to the code it
+// gets back — from then on, every save() also pushes to that same code.
+async function createCloudSave() {
+  if (!CLOUD_AVAILABLE) { toast('☁ Cloud save needs the hosted version of the game, not a local file.', 'warning'); return; }
+  try {
+    const res = await fetch('/api/save/new', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: G }),
+    });
+    if (res.status === 503) { toast('☁ Cloud save isn\'t configured on this server.', 'error'); return; }
+    if (!res.ok) { toast('☁ Failed to create a cloud save.', 'error'); return; }
+    const { code } = await res.json();
+    localStorage.setItem(CLOUD_CODE_KEY, code);
+    updateCloudStatusUI();
+    try { await navigator.clipboard.writeText(code); } catch(e) {}
+    toast(`☁ Cloud save created! Your code is ${code} (copied to clipboard) — write it down, it's the only way to load this save anywhere else.`, 'success', 8000);
+  } catch (e) {
+    toast('☁ Cloud save failed: ' + e.message, 'error');
+  }
+}
+
+// Pushes the current state to whichever code this browser is linked to. Fire-and-forget by
+// design (called from saveGame() on every autosave) — failures only surface as a toast when
+// triggered manually via the "SYNC NOW" button (silent=false).
+async function syncCloudSave(silent) {
+  const code = getCloudCode();
+  if (!CLOUD_AVAILABLE || !code || !G) return;
+  try {
+    const res = await fetch('/api/save/' + code, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: G }),
+    });
+    if (res.ok) { if (!silent) toast('☁ Synced to the cloud!', 'success'); }
+    else if (!silent) toast('☁ Cloud sync failed.', 'warning');
+  } catch (e) {
+    if (!silent) toast('☁ Cloud sync failed: ' + e.message, 'warning');
+  }
+}
+
+// Pulls a save down by code and switches to it, linking this browser to that code going
+// forward. `presetCode` lets the splash-screen flow skip the prompt (it already asked).
+async function linkCloudCode(presetCode) {
+  if (!CLOUD_AVAILABLE) { toast('☁ Cloud save needs the hosted version of the game, not a local file.', 'warning'); return false; }
+  const code = (presetCode || prompt('Enter your cloud save code:') || '').trim().toUpperCase();
+  if (!code) return false;
+  if (G && !confirm('⚠️ Loading this cloud code will OVERWRITE your current game as soon as it next saves/syncs.\n\nContinue?')) return false;
+  try {
+    const res = await fetch('/api/save/' + code);
+    if (res.status === 404) { toast('☁ No cloud save found for that code.', 'error'); return false; }
+    if (!res.ok) { toast('☁ Failed to load that cloud save.', 'error'); return false; }
+    const { data } = await res.json();
+    G = data;
+    migrateState(G);
+    G.incomeRate = 0;
+    G.incomeSamples = [];
+    printerId = Math.max(...G.printers.map(p=>p.id), 0);
+    stationId = Math.max(...G.processingStations.map(s=>s.id), 0);
+    orderId = Math.max(...G.activeOrders.map(o=>o.id), 0);
+    localStorage.setItem(CLOUD_CODE_KEY, code);
+    saveGame(true);
+    updateCloudStatusUI();
+    lastTabRender = 0;
+    toast('☁ Cloud save loaded!', 'success');
+    return true;
+  } catch (e) {
+    toast('☁ Failed to load that cloud save: ' + e.message, 'error');
+    return false;
+  }
+}
+
+function unlinkCloudSave() {
+  localStorage.removeItem(CLOUD_CODE_KEY);
+  updateCloudStatusUI();
+  toast('☁ Unlinked — this save will no longer auto-sync to the cloud.', 'info');
+}
+
+// Splash-screen entry point — prompts once, then reuses linkCloudCode()'s fetch/migrate logic
+// instead of duplicating it, same pattern as importSaveFromPrompt().
+async function loadCloudFromSplash() {
+  const code = (prompt('Enter your cloud save code:') || '').trim().toUpperCase();
+  if (!code) return;
+  const ok = await linkCloudCode(code);
+  if (!ok) return;
+  const splash = document.getElementById('splash');
+  splash.classList.add('hidden');
+  setTimeout(() => splash.remove(), 700);
+  startLoop();
+}
+
+// ========================
 // DEBUG CONSOLE
 // ========================
 const DEBUG_CODES = {
@@ -2605,6 +2715,10 @@ const GITHUB_PROFILE_URL = 'https://github.com/TheBooleanJulian';
 // change) since the full detailed history lives in README.md; this is just enough to answer
 // "what's new" without leaving the game.
 const CHANGELOG = [
+  { version:'1.12.0', notes:[
+    'Added optional ☁ Cloud Save — link your save to a short code and load it on any other browser/device, auto-syncing from then on',
+    'Requires a Postgres-linked server deployment; degrades to a clear message everywhere else (no crashes, no broken buttons)',
+  ]},
   { version:'1.11.0', notes:[
     'Added a progress bar toward the next Scale Up right on the prestige card',
     'New 💠 Prestigium meta-currency: earned on every Scale Up (more for waiting longer past the requirement), never lost to a reset',
@@ -2729,6 +2843,7 @@ const GUIDE_SECTIONS = [
   { icon:'🎲', title:'RANDOM EVENTS', html:`<p>Beyond bulk orders, exhibitions, and commissions, your shop is subject to periodic random swings — filament discounts/price hikes, equipment malfunctions or freshly-serviced nozzles (fail-rate up/down), press features or viral screenshots (followers), rave reviews/trending hashtags/shipping delays (demand), and firmware tweaks/maintenance days (print speed). Active ones show as chips with a countdown under the top HUD.</p>` },
   { icon:'⬆️', title:'SCALE UP & PRESTIGIUM', html:`<p>Once your lifetime earnings hit the requirement (Upgrades tab), Scale Up resets your printers, upgrades, and stock in exchange for a permanent earnings multiplier — plus 💠 <strong>Prestigium</strong>, a currency that's never lost to a reset.</p>
   <p>Spend Prestigium on its own permanent tech tree (also on the Upgrades tab, below Scale Up) — starting cash/filament, permanent value/speed bonuses, a lower Scale Up requirement, bigger future Prestigium payouts, and more. Every node you research there stays researched through every future Scale Up. The longer you run past the requirement before cashing in, the more Prestigium that Scale Up pays out.</p>` },
+  { icon:'☁️', title:'CLOUD SAVE', html:`<p>Your save always lives in this browser's local storage first. If the game is running on a server with cloud save configured, the Settings menu also lets you <strong>CREATE CLOUD SAVE</strong> to upload your current progress and get a short code back — enter that code with <strong>LOAD FROM CODE</strong> (Settings, or the splash screen) on any other browser/device to pick up where you left off. Once linked, every save/autosave also pushes to the cloud automatically. Anyone with the code can load or overwrite that save, so treat it like a password.</p>` },
   { icon:'🔑', title:'KEYBOARD SHORTCUTS', html:`<table class="guide-table"><tr><th>Key</th><th>Action</th></tr>
   <tr><td><span class="guide-key">\`</span></td><td>Open debug console</td></tr>
   <tr><td><span class="guide-key">1–6</span></td><td>Switch tabs (Printers, Products, Upgrades, Automation, Studio, Stats)</td></tr>
@@ -2756,6 +2871,7 @@ function closeGuide() {
 
 function openSettings() {
   document.getElementById('settings-modal').classList.add('open');
+  updateCloudStatusUI();
 }
 
 function toggleChangelog() {

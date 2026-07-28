@@ -25,7 +25,8 @@
     <button class="splash-btn" onclick="startGame()">START NEW CAREER</button>
     <button class="splash-load" id="splash-continue-btn" onclick="loadGameFromSplash()" style="display:none">📂 Load Saved Game</button>
     <button class="splash-load" onclick="importSaveFromPrompt()">⬇ Import Save Code</button>
-    <div class="tip">💾 Saves are stored locally in this browser only — no cloud sync. A different browser, device, or private/incognito window won't see this save. Use EXPORT (once in-game) to back up or move a save.</div>
+    <button class="splash-load" onclick="loadCloudFromSplash()">☁ Load Cloud Save</button>
+    <div class="tip">💾 Saves are stored locally in this browser by default — a different browser, device, or private/incognito window won't see them unless you link a ☁ Cloud Save (Settings menu, once in-game) or use EXPORT/IMPORT to move one manually.</div>
     <div class="tip">Press ` (backtick) to open debug console</div>
   </div>
 </div>
@@ -259,11 +260,26 @@
     <div class="settings-divider"></div>
 
     <div class="settings-row-actions">
-      <button class="btn-hud" onclick="saveGame()" title="Saved locally in this browser only — no cloud sync. Use EXPORT/IMPORT to back up or move your save.">💾 SAVE (LOCAL BROWSER)</button>
+      <button class="btn-hud" onclick="saveGame()" title="Saves locally in this browser, and also pushes to the cloud if you've linked a Cloud Save code below.">💾 SAVE (LOCAL BROWSER)</button>
     </div>
     <div class="settings-row-actions">
       <button class="btn-hud" onclick="exportSave()" title="Copy a portable save code to your clipboard — your only backup, since saves don't sync to any server">⬆ EXPORT</button>
       <button class="btn-hud" onclick="importSaveFromPrompt()" title="Paste a save code to restore or transfer a save">⬇ IMPORT</button>
+    </div>
+
+    <div class="settings-divider"></div>
+
+    <div class="settings-row">
+      <span class="settings-label">☁ Cloud Save</span>
+      <span id="cloud-status" class="cloud-status">Not linked</span>
+    </div>
+    <div class="settings-row-actions">
+      <button class="btn-hud" onclick="createCloudSave()" title="Upload your current save and get a code you can use to load it on another device or browser">☁ CREATE CLOUD SAVE</button>
+      <button class="btn-hud" onclick="syncCloudSave(false)" title="Push your current save to the cloud right now">⬆ SYNC NOW</button>
+    </div>
+    <div class="settings-row-actions">
+      <button class="btn-hud" onclick="linkCloudCode()" title="Load a save from a cloud code — this browser will auto-sync to it from then on">🔗 LOAD FROM CODE</button>
+      <button class="btn-hud" onclick="unlinkCloudSave()" title="Stop auto-syncing this save to the cloud (your local save is untouched)">🔓 UNLINK</button>
     </div>
 
     <div class="settings-divider"></div>
