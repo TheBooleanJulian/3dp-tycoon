@@ -22,8 +22,8 @@
 
   <div class="splash-ready" id="splash-ready">
     <input class="splash-input" id="shop-name-input" placeholder="Name your print shop..." maxlength="28">
-    <button class="splash-btn" onclick="startGame()">START PRINTING</button>
-    <button class="splash-load" onclick="loadGameFromSplash()">📂 Load Saved Game</button>
+    <button class="splash-btn" onclick="startGame()">START NEW CAREER</button>
+    <button class="splash-load" id="splash-continue-btn" onclick="loadGameFromSplash()" style="display:none">📂 Load Saved Game</button>
     <button class="splash-load" onclick="importSaveFromPrompt()">⬇ Import Save Code</button>
     <div class="tip">💾 Saves are stored locally in this browser only — no cloud sync. A different browser, device, or private/incognito window won't see this save. Use EXPORT (once in-game) to back up or move a save.</div>
     <div class="tip">Press ` (backtick) to open debug console</div>
@@ -118,6 +118,7 @@
   <!-- PRODUCTS TAB -->
   <div class="tab-panel" id="tab-products">
     <div id="order-ticker-wrap"></div>
+    <div id="active-orders-section"></div>
     <div class="section-hdr"><h2>INVENTORY</h2><div class="hdr-line"></div></div>
     <div class="tip" style="margin-bottom:10px">LIQUIDATE cashes out a stack instantly to a wholesaler below market rate — always available, even before any upgrades. Research CraftBazaar Shop (Business tree) to also start getting automatic full-price sales from customers over time.</div>
     <div id="sell-grid" class="grid-3" style="margin-bottom:20px"></div>
@@ -205,6 +206,19 @@
       <button class="btn btn-green" onclick="acceptCommission(true)">🖥️ ACCEPT + MODELLING UPSELL</button>
       <button class="btn btn-primary" onclick="acceptCommission(false)">✅ ACCEPT (PRINT ONLY)</button>
       <button class="btn btn-ghost" onclick="declineCommission()">❌ DECLINE</button>
+    </div>
+  </div>
+</div>
+
+<!-- Tutorial Modal (new players only) -->
+<div id="tutorial-modal">
+  <div class="modal-box tutorial-box">
+    <div class="modal-title" id="tutorial-title">👋 WELCOME</div>
+    <div class="modal-body" id="tutorial-body">Welcome!</div>
+    <div class="tutorial-dots" id="tutorial-dots"></div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="skipTutorial()">SKIP</button>
+      <button class="btn btn-primary" onclick="nextTutorialStep()" id="tutorial-next-btn">NEXT ▶</button>
     </div>
   </div>
 </div>

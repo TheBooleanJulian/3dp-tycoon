@@ -1,7 +1,7 @@
 // ========================
 // GAME DATA
 // ========================
-const VERSION = '1.9.0';
+const VERSION = '1.10.0';
 
 // PRODUCT_BASES are the 20 "common" items — the plain, baseline version of each category.
 // Each one also spawns 4 variant tiers (see PRODUCT_VARIANTS below) so that almost no two
@@ -103,7 +103,7 @@ function getAllowedColors(materialId) {
 // speed: relative print rate · eff: filament efficiency (>1 = less waste) · quality: product value multiplier
 // failMod: multiplier on base fail rate (<1 = more reliable, >1 = flakier) · matClass: which materials it can load
 const PRINTER_TYPES = {
-  ender3:      { id:'ender3',      name:'Bender 3 Clone',          icon:'🖨️', color:'#6b6880', cost:0,      speed:1.0,  eff:1.0,  quality:1.0,  failMod:1.0,  maxOwn:4, matClass:'filament', desc:'Your trusty starter. Slow but reliable.' },
+  ender3:      { id:'ender3',      name:'Bender 3 Clone',          icon:'🖨️', color:'#6b6880', cost:189,    speed:1.0,  eff:1.0,  quality:1.0,  failMod:1.0,  maxOwn:4, matClass:'filament', desc:'Your trusty starter. Slow but reliable. (Your first one was free.)' },
   budget_resin:{ id:'budget_resin',name:'PrintPal Mini (Resin)',  icon:'🧪', color:'#c39bd3', cost:150,    speed:1.3,  eff:0.7,  quality:0.9,  failMod:1.4,  maxOwn:4, matClass:'resin',    desc:'Cheap resin entry point. Wasteful and finicky.' },
   bambu_a1:    { id:'bambu_a1',    name:'Mambo Lab A1',           icon:'🔥', color:'#ff6b2b', cost:800,    speed:2.5,  eff:1.1,  quality:1.05, failMod:0.9,  maxOwn:6, matClass:'filament', desc:'Fast CoreXY all-rounder. A real game changer.' },
   resin:       { id:'resin',      name:'Proton Mono M5S',        icon:'💎', color:'#a78bfa', cost:2200,   speed:3.5,  eff:0.85, quality:1.15, failMod:1.0,  maxOwn:4, matClass:'resin',    desc:'Ultra-detail resin. +60% miniature value.', bonusProd:'miniature', bonusMult:1.6 },
@@ -124,6 +124,8 @@ const UPGRADES = {
   direct_drive:   { id:'direct_drive',   cat:'speed',      name:'Direct Drive Extruder',icon:'🎯', cost:1500,  desc:'Shorter filament path, less lag.', effect:'+15% speed, −5% filament', req:['gyroid'],   fn:s=>{s.speedMult*=1.15; s.filamentMult*=0.95} },
   pressure_adv:   { id:'pressure_adv',   cat:'speed',      name:'Pressure Advance',     icon:'📐', cost:2500,  desc:'Perfect corner geometry.',  effect:'+25% speed, +12% value', req:['klipper'],       fn:s=>{s.speedMult*=1.25; s.valueMult*=1.12} },
   linear_rails:   { id:'linear_rails',   cat:'speed',      name:'Linear Rail Upgrade',  icon:'🛤️', cost:6000,  desc:'Precision linear motion.',  effect:'+20% print speed',      req:['pressure_adv'],  fn:s=>{s.speedMult*=1.2} },
+  servo_motors:   { id:'servo_motors',   cat:'speed',      name:'Closed-Loop Servo Motors', icon:'🔩', cost:11000, desc:'Stepper motors upgraded with encoder feedback.', effect:'+18% print speed', req:['linear_rails'], fn:s=>{s.speedMult*=1.18} },
+  ai_slicer:      { id:'ai_slicer',      cat:'speed',      name:'AI-Assisted Slicing',  icon:'🧠', cost:20000, desc:'Machine-learned toolpaths shave seconds off every layer.', effect:'+25% speed, +8% value', req:['servo_motors'], fn:s=>{s.speedMult*=1.25; s.valueMult*=1.08} },
   // Efficiency
   bulk_filament:  { id:'bulk_filament',  cat:'efficiency', name:'Bulk Filament Deal',   icon:'📦', cost:200,   desc:'Wholesale supplier deal.',  effect:'−25% filament cost',    req:[],                fn:s=>{s.filamentPrice*=0.75} },
   filament_dryer: { id:'filament_dryer', cat:'efficiency', name:'Filament Dryer',       icon:'🌡️', cost:180,   desc:'Eliminate moisture issues.', effect:'−60% print failures',  req:[],                fn:s=>{s.failRate*=0.4} },
@@ -132,6 +134,13 @@ const UPGRADES = {
   vacuum_storage: { id:'vacuum_storage', cat:'efficiency', name:'Vacuum-Sealed Storage',icon:'🗜️', cost:1400,  desc:'Zero moisture ingress.',    effect:'−50% remaining failures',req:['filament_dryer'],fn:s=>{s.failRate*=0.5} },
   cf_petg:        { id:'cf_petg',        cat:'efficiency', name:'Carbon Fiber PETG',    icon:'🔩', cost:2000,  desc:'Industrial-grade material.',effect:'+45% industrial value', req:['pla_plus'],      fn:s=>{s.industrialBonus*=1.45} },
   supplier_deal:  { id:'supplier_deal',  cat:'efficiency', name:'Supplier Contract',    icon:'🤝', cost:4000,  desc:'Locked-in industrial rates.',effect:'+20% industrial value', req:['cf_petg'],       fn:s=>{s.industrialBonus*=1.2} },
+  filament_recycler:{ id:'filament_recycler',cat:'efficiency', name:'Filament Recycler', icon:'♻️', cost:1600, desc:'Regrinds failed prints back into usable filament.', effect:'Recover 60% of filament from failed prints', req:['recycled_spools'], fn:s=>{} },
+  recycler_v2:    { id:'recycler_v2',    cat:'efficiency', name:'High-Yield Regrind Process', icon:'🔄', cost:5000,  desc:'Finer regrind pellets waste less material.', effect:'Recycler yield 60% → 80%', req:['filament_recycler'], fn:s=>{s.recyclerYield=0.8} },
+  moisture_ctrl:  { id:'moisture_ctrl',  cat:'efficiency', name:'Climate-Controlled Storage', icon:'❄️', cost:8000,  desc:'Whole-room humidity and temperature control for stock.', effect:'−35% remaining failures', req:['vacuum_storage'], fn:s=>{s.failRate*=0.65} },
+  // Nozzles — a separate progression for multi-colour printing
+  dual_nozzle:    { id:'dual_nozzle',    cat:'nozzle',     name:'Dual-Colour Nozzle Head', icon:'🖌️', cost:2800, desc:'A second filament path lets you add an accent colour to any print.', effect:'Enables 1 accent colour (+10% value)', req:['dual_ext'], fn:s=>{} },
+  quad_nozzle:    { id:'quad_nozzle',    cat:'nozzle',     name:'Quad-Colour Nozzle Head', icon:'🎨', cost:7500, desc:'Four independent filament paths for true multi-colour prints.', effect:'Enables up to 3 accent colours (+10% value each)', req:['dual_nozzle'], fn:s=>{} },
+  color_swap_ai:  { id:'color_swap_ai',  cat:'nozzle',     name:'Automatic Colour-Swap AI', icon:'🤖', cost:15000, desc:'Optimises colour-change timing to cut waste.', effect:'−50% accent colour filament overhead', req:['quad_nozzle'], fn:s=>{s.accentFilamentMult=(s.accentFilamentMult||1)*0.5} },
   // Business
   etsy_store:     { id:'etsy_store',     cat:'business',   name:'CraftBazaar Shop',     icon:'🛍️', cost:75,    desc:'Your online storefront.',   effect:'+12% value, unlock passive online sales', req:[],            fn:s=>{s.valueMult*=1.12; s.unlockedAutoSell=true} },
   loyalty_program:{ id:'loyalty_program',cat:'business',   name:'Loyalty Program',      icon:'💳', cost:500,   desc:'Repeat-customer discounts drive repeat sales.', effect:'+8% value', req:['etsy_store'], fn:s=>{s.valueMult*=1.08} },
@@ -140,6 +149,8 @@ const UPGRADES = {
   modelling_service: { id:'modelling_service', cat:'business', name:'3D Modelling Service', icon:'🖥️', cost:2200, desc:'Offer custom CAD design alongside printing.', effect:'Enable custom commission requests', req:['social_media'], fn:s=>{s.commissionsEnabled=true} },
   intl_shipping:  { id:'intl_shipping',  cat:'business',   name:'International Shipping',icon:'🌍', cost:2500,  desc:'Ship worldwide.',           effect:'+15% value',            req:['biz_license'],   fn:s=>{s.valueMult*=1.15} },
   franchise:      { id:'franchise',      cat:'business',   name:'Franchise License',    icon:'🏪', cost:8000,  desc:'License your brand to other makers.', effect:'+25% value',      req:['modelling_service'], fn:s=>{s.valueMult*=1.25} },
+  global_marketplace:{ id:'global_marketplace', cat:'business', name:'Global Marketplace Listing', icon:'🌐', cost:15000, desc:'Featured placement on every major storefront at once.', effect:'+20% value', req:['franchise'], fn:s=>{s.valueMult*=1.2} },
+  brand_partnership:{ id:'brand_partnership', cat:'business', name:'Brand Partnership Deal', icon:'🤝', cost:35000, desc:'A household-name brand licenses your print designs.', effect:'+30% value', req:['global_marketplace'], fn:s=>{s.valueMult*=1.3} },
   // Room / shelving — a separate early, cheap progression so a cramped bedroom setup can grow to 8 printers
   wall_shelving:  { id:'wall_shelving',  cat:'space',      name:'Wall-Mounted Shelving',icon:'🗄️', cost:250,   desc:'Vertical storage for more printers.', effect:'+2 room capacity', req:[],                 fn:s=>{s.roomCapacityBonus=(s.roomCapacityBonus||0)+2} },
   rolling_carts:  { id:'rolling_carts',  cat:'space',      name:'Rolling Storage Carts',icon:'🛒', cost:150,   desc:'Mobile under-desk storage.',effect:'+1 room capacity',      req:['wall_shelving'], fn:s=>{s.roomCapacityBonus=(s.roomCapacityBonus||0)+1} },
@@ -155,6 +166,7 @@ const UPGRADES = {
   post_proc:      { id:'post_proc',      cat:'quality',    name:'Post-Processing Kit',  icon:'🎨', cost:3000,  desc:'Sanding, priming, paint.',  effect:'Unlocks the Finishing Studio',req:['dual_ext'],     fn:s=>{s.processingUnlocked=true} },
   resin_wash:     { id:'resin_wash',     cat:'quality',    name:'UV Cure Station',      icon:'☀️', cost:5500,  desc:'Professional resin finish.', effect:'+50% resin value',     req:['post_proc'],     fn:s=>{s.resinBonus*=1.5} },
   museum_finish:  { id:'museum_finish',  cat:'quality',    name:'Museum-Grade Finish',  icon:'🏛️', cost:9000,  desc:'Gallery-quality resin post-processing.', effect:'+30% resin value', req:['resin_wash'],   fn:s=>{s.resinBonus*=1.3} },
+  nano_coating:   { id:'nano_coating',   cat:'quality',    name:'Nano-Ceramic Coating', icon:'🧪', cost:16000, desc:'A microscopic protective coating applied to every finished piece.', effect:'+15% value on all products', req:['museum_finish'], fn:s=>{s.valueMult*=1.15} },
 };
 
 const AUTOMATION_ITEMS = {
@@ -165,15 +177,26 @@ const AUTOMATION_ITEMS = {
   price_opt:      { id:'price_opt',      name:'Dynamic Pricing AI',      icon:'📈', cost:6000,  tier:2, desc:'Optimises price timing for +22% revenue on all passive sales & liquidations.' },
   jit_logistics:  { id:'jit_logistics',  name:'JIT Filament Logistics',  icon:'🚚', cost:12000, tier:3, desc:'Bulk delivery system. Filament costs 28% less across the board.' },
   ai_scheduler:   { id:'ai_scheduler',   name:'AI Print Scheduler',      icon:'🤖', cost:25000, tier:3, desc:'Optimal job scheduling across all printers. +18% throughput.' },
+  smart_restock:  { id:'smart_restock',  name:'Smart Restock AI',        icon:'🧠', cost:2500,  tier:2, desc:'Restocks earlier and in bigger batches, so printers never idle waiting on filament.', reqAuto:'auto_filament' },
+  color_optimizer:{ id:'color_optimizer',name:'Multi-Colour Optimizer',  icon:'🎨', cost:8000,  tier:2, desc:'Software-optimised colour-change paths. -20% accent colour filament overhead.', req:'dual_nozzle' },
+  predictive_maint:{ id:'predictive_maint',name:'Predictive Maintenance AI',icon:'🔧', cost:18000, tier:3, desc:'Flags wear before it causes a failure. -15% print failure rate while active.' },
+  remote_monitoring:{ id:'remote_monitoring',name:'Remote Fleet Monitoring',icon:'📡', cost:1200,  tier:1, desc:'Push alerts the moment a printer fails or a station idles — no gameplay effect, just peace of mind.' },
+  demand_forecasting:{ id:'demand_forecasting',name:'Demand Forecasting AI',icon:'📊', cost:40000, tier:3, desc:'Predicts market demand swings before they hit. +12% passive sale revenue.', req:'price_opt' },
 };
 
 // More random events — flavour swings that fire periodically alongside bulk orders/exhibitions/commissions.
 const RANDOM_EVENTS = [
   { name:'Supplier Bulk Discount', icon:'📦', type:'discount',  mult:0.7, duration:60,  msg:mins=>`📦 Supplier discount! Filament costs -30% for ${mins}m` },
+  { name:'Filament Price Hike',    icon:'📈', type:'discount',  mult:1.4, duration:50,  msg:mins=>`📈 Raw material shortage! Filament costs +40% for ${mins}m` },
   { name:'Equipment Malfunction',  icon:'⚡', type:'failspike', mult:1.8, duration:45,  msg:mins=>`⚡ Power fluctuation! Print failure rate spikes for ${mins}m` },
+  { name:'Fresh Nozzle Swap',      icon:'🔧', type:'failspike', mult:0.5, duration:50,  msg:mins=>`🔧 Freshly serviced nozzles! Print failure rate halved for ${mins}m` },
   { name:'Local Press Feature',    icon:'📰', type:'followers', amount:[100,400],       msg:g=>`📰 Local news featured your shop! +${g} followers` },
+  { name:'Viral Screenshot',       icon:'📸', type:'followers', amount:[300,900],       msg:g=>`📸 A screenshot of your shop is spreading online! +${g} followers` },
   { name:'Customer Rave Review',   icon:'⭐', type:'demand',    mult:1.6, duration:90,  msg:mins=>`⭐ A rave review is boosting demand ×1.6 for ${mins}m` },
   { name:'Shipping Delay',         icon:'📮', type:'demand',    mult:0.6, duration:60,  msg:mins=>`📮 Shipping delays are slowing sales for ${mins}m` },
+  { name:'Trending Hashtag',       icon:'#️⃣', type:'demand',    mult:1.8, duration:60,  msg:mins=>`#️⃣ Your products are trending! Demand ×1.8 for ${mins}m` },
+  { name:'Firmware Optimisation',  icon:'💾', type:'speed',     mult:1.3, duration:70,  msg:mins=>`💾 A firmware tweak sped up every printer ×1.3 for ${mins}m` },
+  { name:'Maintenance Day',        icon:'🧯', type:'speed',     mult:0.75,duration:40,  msg:mins=>`🧯 Scheduled maintenance is slowing prints for ${mins}m` },
 ];
 
 const PROCESS_STAGES = [
@@ -191,16 +214,25 @@ const OFFICE_SPACES = {
   mega_factory: { id:'mega_factory',  name:'Mega Factory Complex', icon:'🏗️', furnishing:400000, rent:1.2,  capacity:100,req:'warehouse',    desc:'A sprawling manufacturing complex.' },
 };
 
+// followerBase is a small random range at the booth itself — the real payoff scales with
+// followerScale below, which grows with the shop's own progress so exhibitions never hit a
+// hard follower ceiling the way a fixed followerMax would.
 const EXHIBITIONS = [
-  { name:'Local Maker Faire',      icon:'🎪', costMin:200,   costMax:600,   followerMin:50,   followerMax:200,  boostMult:1.2, boostDuration:180 },
-  { name:'Comic Con Artist Alley', icon:'🎭', costMin:800,   costMax:2000,  followerMin:150,  followerMax:500,  boostMult:1.3, boostDuration:240 },
-  { name:'Regional Trade Show',    icon:'🏟️', costMin:3000,  costMax:8000,  followerMin:400,  followerMax:1200, boostMult:1.4, boostDuration:300 },
-  { name:'International Expo',    icon:'🌐', costMin:10000, costMax:25000, followerMin:1000, followerMax:3000, boostMult:1.6, boostDuration:420 },
+  { name:'Hobbyist Meetup',        icon:'🧑‍🤝‍🧑', costMin:50,    costMax:150,   followerBase:[20,60],    followerScale:0.4, boostMult:1.1, boostDuration:120 },
+  { name:'Local Maker Faire',      icon:'🎪', costMin:200,   costMax:600,   followerBase:[50,200],   followerScale:0.6, boostMult:1.2, boostDuration:180 },
+  { name:'Comic Con Artist Alley', icon:'🎭', costMin:800,   costMax:2000,  followerBase:[150,500],  followerScale:0.8, boostMult:1.3, boostDuration:240 },
+  { name:'Regional Trade Show',    icon:'🏟️', costMin:3000,  costMax:8000,  followerBase:[400,1200], followerScale:1.0, boostMult:1.4, boostDuration:300 },
+  { name:'University Engineering Fair', icon:'🎓', costMin:1500, costMax:4000, followerBase:[300,900], followerScale:0.9, boostMult:1.35, boostDuration:260 },
+  { name:'Design Awards Gala',     icon:'🏆', costMin:5000,  costMax:12000, followerBase:[500,1500], followerScale:1.2, boostMult:1.5, boostDuration:340 },
+  { name:'International Expo',    icon:'🌐', costMin:10000, costMax:25000, followerBase:[1000,3000],followerScale:1.4, boostMult:1.6, boostDuration:420 },
+  { name:'National Manufacturing Summit', icon:'🏭', costMin:25000, costMax:60000, followerBase:[2000,6000], followerScale:1.8, boostMult:1.8, boostDuration:480 },
 ];
 
 const STAFF_ROLES = {
   finisher: { id:'finisher', name:'Finishing Technician', icon:'🧑‍🔧', desc:'Feeds raw prints into idle Finishing Studio stations and advances every stage automatically.', wage:0.15, robotCost:4000, robotName:'Finishing Robot Arm', robotIcon:'🦾' },
   marketer: { id:'marketer', name:'Social Media Manager', icon:'📲', desc:'Posts timelapse clips the moment they\'re captured, keeping your follower count climbing on its own.', wage:0.12, robotCost:3000, robotName:'Autoposter Bot', robotIcon:'🤳' },
+  procurement: { id:'procurement', name:'Procurement Manager', icon:'🧑‍💼', desc:'Negotiates supplier rates on every filament purchase.', wage:0.18, robotCost:6000, robotName:'Procurement AI', robotIcon:'🤖', effect:'−10% filament cost' },
+  supervisor: { id:'supervisor', name:'Floor Supervisor', icon:'👷', desc:'Keeps every printer properly calibrated and monitored.', wage:0.20, robotCost:7500, robotName:'QC Sentry Drone', robotIcon:'🛰️', effect:'−12% print failure rate' },
 };
 
 const ACHIEVEMENTS = [
@@ -222,6 +254,16 @@ const ACHIEVEMENTS = [
   { id:'printer_collector',name:'Machine Shop',      icon:'🧰', desc:'Own one of every printer model',   check:s=>Object.keys(PRINTER_TYPES).every(t=>s.printers.some(p=>p.typeId===t)) },
   { id:'trade_show_regular',name:'Trade Show Regular',icon:'🎪', desc:'Attend 5 exhibitions',             check:s=>s.exhibitionsAttended>=5 },
   { id:'factory_floor',  name:'Factory Floor',       icon:'🏗️', desc:'Lease the Mega Factory Complex',   check:s=>!!s.rentedSpaces.mega_factory },
+  { id:'full_tech_tree',  name:'Nothing Left To Research', icon:'🧬', desc:'Research every upgrade in the tech tree', check:s=>Object.keys(UPGRADES).every(k=>s.upgrades[k]) },
+  { id:'all_staff_robots',name:'Fully Automated Floor',    icon:'🤖', desc:'Replace every staff role with a robot',   check:s=>Object.keys(STAFF_ROLES).every(r=>s.staff[r]==='robot') },
+  { id:'printer_hoarder', name:'One Of Every Kind',        icon:'🗃️', desc:'Own the maximum allowed of every printer model', check:s=>Object.entries(PRINTER_TYPES).every(([id,pt])=>s.printers.filter(p=>p.typeId===id).length>=pt.maxOwn) },
+  { id:'flawless_hundred', name:'Flawless Streak',         icon:'💯', desc:'Complete 100 successful prints in a row without a single failure', check:s=>s.bestSuccessStreak>=100 },
+  { id:'upsell_master',   name:'Upsell Master',           icon:'🖥️', desc:'Fulfill 25 commissions with the 3D modelling upsell', check:s=>s.commissionsWithModelling>=25 },
+  { id:'filament_hoarder', name:'Filament Hoarder',        icon:'🧵', desc:'Stockpile 50kg of filament at once',       check:s=>Object.values(s.filamentStock).reduce((a,byC)=>a+Object.values(byC).reduce((x,y)=>x+y,0),0)>=50000 },
+  { id:'multi_color_pioneer', name:'Multi-Colour Pioneer',  icon:'🎨', desc:'Complete 100 multi-colour prints',         check:s=>s.multiColorPrints>=100 },
+  { id:'master_recycler', name:'Master Recycler',          icon:'♻️', desc:'Recycle 10kg of filament from failed prints', check:s=>s.totalFilamentRecycled>=10000 },
+  { id:'nozzle_master',   name:'Nozzle Master',            icon:'🖌️', desc:'Research every multi-colour nozzle upgrade', check:s=>!!s.upgrades.color_swap_ai },
+  { id:'viral_sensation', name:'Viral Sensation',          icon:'🌟', desc:'Land 5 viral timelapse posts',              check:s=>s.viralHits>=5 },
 ];
 
 // ========================
@@ -230,6 +272,7 @@ const ACHIEVEMENTS = [
 let G = null;
 let printerId = 0;
 let stationId = 0;
+let orderId = 0;
 
 // Filament stock is tracked per material AND per colour — a spool of red PETG is a
 // physically different roll from black PETG, so loading "red" on a printer must draw down
@@ -255,13 +298,17 @@ function getTotalFilament() {
   return total;
 }
 
-function stackKey(productId, material, color, printerTypeId) {
-  return `${productId}__${material}__${color}__${printerTypeId}`;
+// `tag` differentiates otherwise-identical stacks — currently only used to keep multi-colour
+// prints (which carry a value bonus) in their own stack instead of merging with single-colour
+// output of the same product/material/primary-colour/printer.
+function stackKey(productId, material, color, printerTypeId, tag) {
+  return `${productId}__${material}__${color}__${printerTypeId}` + (tag ? `__${tag}` : '');
 }
 
-function addToInventory(store, productId, material, color, printerTypeId, qty) {
-  const key = stackKey(productId, material, color, printerTypeId);
-  if (!store[key]) store[key] = { productId, material, color, printerTypeId, qty: 0 };
+function addToInventory(store, productId, material, color, printerTypeId, qty, extra) {
+  extra = extra || {};
+  const key = stackKey(productId, material, color, printerTypeId, extra.tag);
+  if (!store[key]) store[key] = { productId, material, color, printerTypeId, qty: 0, multiColorMult: extra.multiColorMult || 1, accentColors: extra.accentColors || [] };
   store[key].qty += qty;
 }
 
@@ -275,7 +322,7 @@ function defaultState(shopName) {
     filamentStock: startStock,
     inventory: {},
     rawInventory: {},
-    printers: [{ id: ++printerId, typeId:'ender3', progress:0, printing:false, job:'keychain', material:'pla', color:'black', totalPrints:0, active:true }],
+    printers: [{ id: ++printerId, typeId:'ender3', progress:0, printing:false, job:'keychain', material:'pla', color:'black', accentColors:[], totalPrints:0, active:true }],
     unlockedProducts: ['keychain'],
     filamentColorPick: {}, // last colour picked per material in the Buy Filament UI (cosmetic, not gameplay state)
     upgrades: {},
@@ -315,6 +362,8 @@ function defaultState(shopName) {
     industrialBonus: 1.0,
     decorativeBonus: 1.0,
     resinBonus: 1.0,
+    accentFilamentMult: 1.0,
+    recyclerYield: 0.6,
     unlockedAutoSell: false,
     bulkOrdersEnabled: false,
     // Stats
@@ -323,6 +372,12 @@ function defaultState(shopName) {
     totalFilamentUsed: 0,
     totalMassSuccess: 0,
     totalMassFailed: 0,
+    totalFilamentRecycled: 0,
+    multiColorPrints: 0,
+    bestSuccessStreak: 0,
+    currentSuccessStreak: 0,
+    commissionsWithModelling: 0,
+    followerDriftAccum: 0,
     playTime: 0,
     startTime: Date.now(),
     // Auto timers
@@ -331,6 +386,7 @@ function defaultState(shopName) {
     // Bulk orders
     bulkOrdersAccepted: 0,
     pendingBulkOrder: null,
+    activeOrders: [],
     // Custom commissions (3D modelling upsell)
     commissionsEnabled: false,
     commissionTimer: 0,
@@ -346,6 +402,11 @@ function defaultState(shopName) {
     failRateEventUntil: 0,
     demandEventMult: 1.0,
     demandEventUntil: 0,
+    speedEventMult: 1.0,
+    speedEventUntil: 0,
+    // User-adjustable automation settings
+    autoFilamentThreshold: 600,
+    autoFilamentQty: 1000,
     // Prestige
     prestigeCount: 0,
     prestigeMult: 1.0,
@@ -427,6 +488,7 @@ function migrateState(state) {
     // colour it can no longer use — clamp to something valid.
     const allowed = getAllowedColors(p.material);
     if (!allowed.includes(p.color)) p.color = allowed[0];
+    if (!p.accentColors) p.accentColors = [];
   }
   // Inventory/rawInventory used to be a flat productId -> qty map. Fold any leftover flat
   // entries into a generic PLA/black/ender3 stack so old saves don't lose their stock.
@@ -445,6 +507,14 @@ function migrateState(state) {
   if (!state.filamentColorPick) state.filamentColorPick = {};
   if (state.totalMassSuccess === undefined) state.totalMassSuccess = 0;
   if (state.totalMassFailed === undefined) state.totalMassFailed = 0;
+  if (state.accentFilamentMult === undefined) state.accentFilamentMult = 1.0;
+  if (state.recyclerYield === undefined) state.recyclerYield = 0.6;
+  if (state.totalFilamentRecycled === undefined) state.totalFilamentRecycled = 0;
+  if (state.multiColorPrints === undefined) state.multiColorPrints = 0;
+  if (state.bestSuccessStreak === undefined) state.bestSuccessStreak = 0;
+  if (state.currentSuccessStreak === undefined) state.currentSuccessStreak = 0;
+  if (state.commissionsWithModelling === undefined) state.commissionsWithModelling = 0;
+  if (state.followerDriftAccum === undefined) state.followerDriftAccum = 0;
   if (state.commissionsEnabled === undefined) state.commissionsEnabled = !!(state.upgrades && state.upgrades.modelling_service);
   if (state.commissionTimer === undefined) state.commissionTimer = 0;
   if (state.commissionInterval === undefined) state.commissionInterval = 200 + Math.random() * 200;
@@ -458,6 +528,11 @@ function migrateState(state) {
   if (state.failRateEventUntil === undefined) state.failRateEventUntil = 0;
   if (state.demandEventMult === undefined) state.demandEventMult = 1.0;
   if (state.demandEventUntil === undefined) state.demandEventUntil = 0;
+  if (state.speedEventMult === undefined) state.speedEventMult = 1.0;
+  if (state.speedEventUntil === undefined) state.speedEventUntil = 0;
+  if (state.autoFilamentThreshold === undefined) state.autoFilamentThreshold = 600;
+  if (state.autoFilamentQty === undefined) state.autoFilamentQty = 1000;
+  if (!state.activeOrders) state.activeOrders = [];
   // auto_sell was replaced by auto_liquidate — carry the purchase across so players don't lose
   // the automation slot they already paid for.
   if (state.automationOwned && state.automationOwned.auto_sell && !state.automationOwned.auto_liquidate) {
@@ -503,7 +578,7 @@ function tick(dt) {
     const prod = PRODUCTS[p.job];
     if (!prod) continue;
     const speedBonus = G.ai_scheduler_bonus || 1.0;
-    const rate = (pType.speed * G.speedMult * speedBonus * 100) / prod.printTime;
+    const rate = (pType.speed * G.speedMult * speedBonus * activeMult('speedEvent') * 100) / prod.printTime;
     p.progress += rate * dt;
     if (p.progress >= 100) {
       p.progress = 0;
@@ -529,8 +604,9 @@ function tick(dt) {
 
   // Auto-filament — resupplies whichever material+colour combos your printers are actually loaded with
   if (G.automationOwned.auto_filament && G.automationActive.auto_filament) {
-    const threshold = 600;
-    const qty = 1000;
+    const smartBonus = (G.automationOwned.smart_restock && G.automationActive.smart_restock) ? 1.8 : 1.0;
+    const threshold = (G.autoFilamentThreshold || 600) * smartBonus;
+    const qty = G.autoFilamentQty || 1000;
     const inUse = new Set(G.printers.map(p => p.material + '|' + p.color));
     for (const combo of inUse) {
       const [matId, colorId] = combo.split('|');
@@ -555,6 +631,8 @@ function tick(dt) {
   tickMarketing(dt);
   tickRent(dt);
   tickRandomEvents(dt);
+
+  tickActiveOrders(dt);
 
   // Bulk orders
   if (G.bulkOrdersEnabled && !G.pendingBulkOrder && !G.pendingExhibition && !G.pendingCommission) {
@@ -610,33 +688,62 @@ function tick(dt) {
 
 function now_t() { return performance.now(); }
 
+// Accent colours (from the nozzle tech tree) draw a smaller top-up amount from their own
+// colour's stock, on top of the printer's normal primary-colour draw.
+const ACCENT_FILAMENT_RATIO = 0.15;
+
+function getActiveAccentColors(printer) {
+  return (printer.accentColors || []).filter(Boolean).slice(0, getMaxAccentColors());
+}
+
 function tryStartPrint(printer) {
   const prod = PRODUCTS[printer.job];
   if (!prod) return;
   const filCost = getFilamentCost(prod, printer.typeId);
-  if (getFilamentGrams(printer.material, printer.color) >= filCost) {
-    G.filamentStock[printer.material][printer.color] -= filCost;
-    G.totalFilamentUsed += filCost;
-    printer.printing = true;
-    printer.progress = 0;
-    printer.activeJob = { productId: printer.job, material: printer.material, color: printer.color, printerTypeId: printer.typeId, filCost };
-  }
+  const accents = getActiveAccentColors(printer);
+  const accentCost = filCost * ACCENT_FILAMENT_RATIO * (G.accentFilamentMult || 1);
+  if (getFilamentGrams(printer.material, printer.color) < filCost) return;
+  for (const c of accents) if (getFilamentGrams(printer.material, c) < accentCost) return;
+  G.filamentStock[printer.material][printer.color] -= filCost;
+  for (const c of accents) G.filamentStock[printer.material][c] -= accentCost;
+  G.totalFilamentUsed += filCost + accents.length * accentCost;
+  printer.printing = true;
+  printer.progress = 0;
+  printer.activeJob = { productId: printer.job, material: printer.material, color: printer.color, printerTypeId: printer.typeId, filCost, accentColors: accents };
 }
 
 function completePrint(printer, job) {
   // Failure check — printer failMod and material failMod both make failures more/less likely
   const pTypeFail = PRINTER_TYPES[job.printerTypeId];
   const matFail = MATERIALS[job.material];
-  const failed = Math.random() < G.failRate * (pTypeFail?.failMod || 1) * (matFail?.failMod || 1) * activeMult('failRateEvent');
+  const supervisorBonus = staffActive('supervisor') ? 0.88 : 1;
+  const failed = Math.random() < G.failRate * (pTypeFail?.failMod || 1) * (matFail?.failMod || 1) * activeMult('failRateEvent') * supervisorBonus;
   if (failed) {
     G.totalMassFailed += job.filCost;
-    toast(`⚠️ Print failed on ${pTypeFail.name}!`, 'warning');
+    G.currentSuccessStreak = 0;
+    // Filament Recycler upgrade — reclaims a percentage of the wasted filament from the failed
+    // print (at a yield loss representing the regrinding process) instead of losing it all.
+    if (G.upgrades.filament_recycler) {
+      const recovered = Math.round(job.filCost * (G.recyclerYield || 0.6) * 100) / 100;
+      G.filamentStock[job.material][job.color] = (G.filamentStock[job.material][job.color] || 0) + recovered;
+      G.totalFilamentRecycled = (G.totalFilamentRecycled || 0) + recovered;
+      toast(`♻️ Print failed on ${pTypeFail.name} — recycled ${fmtG(recovered)} ${COLORS[job.color]?.name || ''} ${matFail?.name || ''}`, 'info');
+    } else {
+      toast(`⚠️ Print failed on ${pTypeFail.name}!`, 'warning');
+    }
     return;
   }
   G.totalMassSuccess += job.filCost;
-  addToInventory(G.rawInventory, job.productId, job.material, job.color, job.printerTypeId, 1);
+  const accents = job.accentColors || [];
+  const isMulti = accents.length > 0;
+  const multiColorMult = isMulti ? 1 + accents.length * 0.1 : 1;
+  addToInventory(G.rawInventory, job.productId, job.material, job.color, job.printerTypeId, 1,
+    isMulti ? { tag: 'multi' + accents.length, multiColorMult, accentColors: accents } : undefined);
+  if (isMulti) G.multiColorPrints = (G.multiColorPrints || 0) + 1;
   printer.totalPrints++;
   G.totalPrints++;
+  G.currentSuccessStreak = (G.currentSuccessStreak || 0) + 1;
+  if (G.currentSuccessStreak > G.bestSuccessStreak) G.bestSuccessStreak = G.currentSuccessStreak;
 
   // Timelapse capture — small chance per completed print
   if (Math.random() < 0.15) {
@@ -651,19 +758,39 @@ function manualStartPrint(printerId) {
   const prod = PRODUCTS[p.job];
   if (!prod) return;
   const filCost = getFilamentCost(prod, p.typeId);
+  const accents = getActiveAccentColors(p);
+  const accentCost = filCost * ACCENT_FILAMENT_RATIO * (G.accentFilamentMult || 1);
   if (getFilamentGrams(p.material, p.color) < filCost) {
     toast(`⚠️ Not enough ${COLORS[p.color]?.name || ''} ${MATERIALS[p.material].name}!`, 'warning'); return;
   }
+  for (const c of accents) {
+    if (getFilamentGrams(p.material, c) < accentCost) {
+      toast(`⚠️ Not enough ${COLORS[c]?.name || ''} ${MATERIALS[p.material].name} for the accent colour!`, 'warning'); return;
+    }
+  }
   G.filamentStock[p.material][p.color] -= filCost;
-  G.totalFilamentUsed += filCost;
+  for (const c of accents) G.filamentStock[p.material][c] -= accentCost;
+  G.totalFilamentUsed += filCost + accents.length * accentCost;
   p.printing = true;
   p.progress = 0;
-  p.activeJob = { productId: p.job, material: p.material, color: p.color, printerTypeId: p.typeId, filCost };
+  p.activeJob = { productId: p.job, material: p.material, color: p.color, printerTypeId: p.typeId, filCost, accentColors: accents };
 }
 
 function stopPrinter(printerId) {
   const p = G.printers.find(x => x.id === printerId);
   if (p) { p.printing = false; p.progress = 0; }
+}
+
+// Seconds remaining on a printer's current job, using the same speed formula the tick loop
+// uses to advance progress — so the ETA always matches how fast the bar is actually moving.
+function getPrintETA(printer) {
+  const pType = PRINTER_TYPES[printer.typeId];
+  const prod = PRODUCTS[printer.job];
+  if (!pType || !prod || !printer.printing) return 0;
+  const speedBonus = G.ai_scheduler_bonus || 1.0;
+  const rate = (pType.speed * G.speedMult * speedBonus * activeMult('speedEvent') * 100) / prod.printTime;
+  if (rate <= 0) return 0;
+  return Math.max(0, (100 - printer.progress) / rate);
 }
 
 function getFilamentCost(prod, printerTypeId) {
@@ -673,13 +800,14 @@ function getFilamentCost(prod, printerTypeId) {
 
 function getMaterialPrice(materialId) {
   const mat = MATERIALS[materialId];
-  return G.filamentPrice * (mat?.costMult || 1) * activeMult('filamentPriceEvent');
+  const procurementBonus = staffActive('procurement') ? 0.9 : 1;
+  return G.filamentPrice * (mat?.costMult || 1) * activeMult('filamentPriceEvent') * procurementBonus;
 }
 
 // Value of ONE specific unit — a black PLA keychain off an ender3 and a red silk PETG keychain
 // off a Mambo X1 are priced independently rather than being blended into one fleet-wide average,
 // so switching material/colour per printer has a real, discrete effect on what that batch sells for.
-function getProductValue(productId, printerTypeId, materialId, colorId) {
+function getProductValue(productId, printerTypeId, materialId, colorId, multiColorMult) {
   const prod = PRODUCTS[productId];
   if (!prod) return 0;
   let v = prod.baseValue * G.valueMult * G.prestigeMult;
@@ -697,6 +825,8 @@ function getProductValue(productId, printerTypeId, materialId, colorId) {
   if (['planter','cosplay_prop','miniature'].includes(productId)) v *= G.decorativeBonus;
   // Resin bonus
   if (printerTypeId === 'resin') v *= G.resinBonus;
+  // Multi-colour prints (accent colours from the nozzle tech tree) command a premium
+  if (multiColorMult) v *= multiColorMult;
   // Marketing (followers + viral boost)
   v *= getMarketingMult();
   return Math.round(v * 100) / 100;
@@ -742,8 +872,15 @@ function printerRating(pt) {
   };
 }
 
-function getRawSaleValue(productId, printerTypeId, materialId, colorId) {
-  return Math.round(getProductValue(productId, printerTypeId, materialId, colorId) * RAW_SELL_MULT * 100) / 100;
+function getRawSaleValue(productId, printerTypeId, materialId, colorId, multiColorMult) {
+  return Math.round(getProductValue(productId, printerTypeId, materialId, colorId, multiColorMult) * RAW_SELL_MULT * 100) / 100;
+}
+
+// How many extra accent colours a printer can currently load, from the nozzle tech tree.
+function getMaxAccentColors() {
+  if (G.upgrades.quad_nozzle) return 3;
+  if (G.upgrades.dual_nozzle) return 1;
+  return 0;
 }
 
 // ========================
@@ -758,7 +895,8 @@ const LIQUIDATE_MULT = 0.55;
 function tickSales(dt) {
   if (!G.unlockedAutoSell) return; // requires the CraftBazaar Shop upgrade — no storefront, no customers finding you
   const followerMult = 1 + Math.min(G.followers, 20000) / 4000; // publicity brings in more browsing customers
-  const priceOptBonus = (G.automationOwned.price_opt && G.automationActive.price_opt) ? 1.22 : 1.0;
+  let priceOptBonus = (G.automationOwned.price_opt && G.automationActive.price_opt) ? 1.22 : 1.0;
+  if (G.automationOwned.demand_forecasting && G.automationActive.demand_forecasting) priceOptBonus *= 1.12;
   const rate = BASE_SALE_RATE * followerMult * activeMult('demandEvent');
   for (const key of Object.keys(G.inventory)) {
     const stack = G.inventory[key];
@@ -768,7 +906,7 @@ function tickSales(dt) {
     while (stack.saleAccum >= 1 && sold < stack.qty) { stack.saleAccum -= 1; sold++; }
     if (sold <= 0) continue;
     stack.qty -= sold;
-    const val = getProductValue(stack.productId, stack.printerTypeId, stack.material, stack.color);
+    const val = getProductValue(stack.productId, stack.printerTypeId, stack.material, stack.color, stack.multiColorMult);
     const earned = val * sold * priceOptBonus;
     G.money += earned;
     G.lifetimeEarned += earned;
@@ -783,7 +921,7 @@ function liquidateStack(key, qty, event) {
   if (!stack || stack.qty < 1) return;
   const amount = Math.min(qty || 1, stack.qty);
   stack.qty -= amount;
-  const val = getProductValue(stack.productId, stack.printerTypeId, stack.material, stack.color);
+  const val = getProductValue(stack.productId, stack.printerTypeId, stack.material, stack.color, stack.multiColorMult);
   const priceOptBonus = (G.automationOwned.price_opt && G.automationActive.price_opt) ? 1.22 : 1.0;
   const earned = val * LIQUIDATE_MULT * priceOptBonus * amount;
   G.money += earned;
@@ -821,7 +959,7 @@ function sellRaw(key, qty, event) {
   if (!stack || stack.qty < 1) return;
   const amount = Math.min(qty || 1, stack.qty);
   stack.qty -= amount;
-  const earned = getRawSaleValue(stack.productId, stack.printerTypeId, stack.material, stack.color) * amount;
+  const earned = getRawSaleValue(stack.productId, stack.printerTypeId, stack.material, stack.color, stack.multiColorMult) * amount;
   G.money += earned;
   G.lifetimeEarned += earned;
   G.incomeSamples.push({ t: now_t(), v: earned });
@@ -913,8 +1051,18 @@ function buyRobot(roleId, event) {
 
 function fireWorker(roleId) {
   if (!G.staff[roleId]) return;
+  const role = STAFF_ROLES[roleId];
+  if (G.staff[roleId] === 'robot' && !confirm(`Decommission your ${role.robotName}?\n\nYou paid $${fmtNum(role.robotCost)} for it and there's no refund — you'd need to buy a new one if you want this role automated again.`)) {
+    return;
+  }
   delete G.staff[roleId];
   delete G.staffUnpaid[roleId];
+}
+
+// A staff role only provides its effect while actually paid/powered — an unpaid worker is
+// paused, same as the existing Finishing Technician/Social Media Manager checks elsewhere.
+function staffActive(roleId) {
+  return !!G.staff[roleId] && !G.staffUnpaid[roleId];
 }
 
 function tickStaffWages(dt) {
@@ -963,6 +1111,21 @@ function tickMarketing(dt) {
       postTimelapse();
     }
   }
+  tickFollowerDrift(dt);
+}
+
+// Organic growth — once you have a social media presence, a small trickle of new followers
+// finds you passively over time, on top of whatever timelapses you actively post. Growth slows
+// as your following gets huge (diminishing returns), same shape as the marketing value bonus.
+function tickFollowerDrift(dt) {
+  if (!G.upgrades.social_media) return;
+  const rate = 0.03 * (1 / (1 + G.followers / 3000));
+  G.followerDriftAccum = (G.followerDriftAccum || 0) + rate * dt;
+  if (G.followerDriftAccum >= 1) {
+    const gained = Math.floor(G.followerDriftAccum);
+    G.followerDriftAccum -= gained;
+    G.followers += gained;
+  }
 }
 
 // ========================
@@ -987,7 +1150,7 @@ function buyPrinter(typeId, event) {
   G.money -= pt.cost;
   const defaultJob = G.unlockedProducts[G.unlockedProducts.length - 1] || 'keychain';
   const defaultMaterial = Object.values(MATERIALS).find(m => m.matClass === pt.matClass)?.id || 'pla';
-  G.printers.push({ id: ++printerId, typeId, progress:0, printing:false, job:defaultJob, material:defaultMaterial, color:'black', totalPrints:0, active:true });
+  G.printers.push({ id: ++printerId, typeId, progress:0, printing:false, job:defaultJob, material:defaultMaterial, color:'black', accentColors:[], totalPrints:0, active:true });
   toast(`🖨️ ${pt.name} added to your workshop!`, 'success');
   if (pt.cost > 0) spawnFloat(`-$${fmtNum(pt.cost)}`, event, 'spend');
 }
@@ -999,9 +1162,10 @@ function setPrinterMaterial(printerId, materialId) {
   if (!p || !mat || mat.matClass !== pt.matClass) return;
   p.material = materialId;
   // Some materials (e.g. carbon fiber) are only produced in a subset of colours — clamp the
-  // printer's loaded colour to something valid for the newly selected material.
+  // printer's loaded colour (and any accent colours) to something valid for the new material.
   const allowed = getAllowedColors(materialId);
   if (!allowed.includes(p.color)) p.color = allowed[0];
+  if (p.accentColors) p.accentColors = p.accentColors.map(c => (c && allowed.includes(c)) ? c : null);
 }
 
 function setPrinterColor(printerId, colorId) {
@@ -1009,6 +1173,15 @@ function setPrinterColor(printerId, colorId) {
   if (!p || !COLORS[colorId]) return;
   if (!getAllowedColors(p.material).includes(colorId)) return;
   p.color = colorId;
+}
+
+function setPrinterAccentColor(printerId, slotIndex, colorId) {
+  const p = G.printers.find(x => x.id === printerId);
+  if (!p) return;
+  if (!p.accentColors) p.accentColors = [];
+  if (!colorId) { p.accentColors[slotIndex] = null; return; }
+  if (!COLORS[colorId] || !getAllowedColors(p.material).includes(colorId)) return;
+  p.accentColors[slotIndex] = colorId;
 }
 
 // ========================
@@ -1081,6 +1254,7 @@ function buyAutomation(id, event) {
   const a = AUTOMATION_ITEMS[id];
   if (!a || G.automationOwned[id]) return;
   if (a.req && !G.upgrades[a.req]) { toast(`Requires ${UPGRADES[a.req]?.name || a.req}!`, 'warning'); return; }
+  if (a.reqAuto && !G.automationOwned[a.reqAuto]) { toast(`Requires ${AUTOMATION_ITEMS[a.reqAuto]?.name || a.reqAuto}!`, 'warning'); return; }
   if (G.money < a.cost) { toast('Not enough money!', 'error'); return; }
   G.money -= a.cost;
   G.automationOwned[id] = true;
@@ -1092,6 +1266,15 @@ function buyAutomation(id, event) {
 function toggleAutomation(id) {
   if (!G.automationOwned[id]) return;
   G.automationActive[id] = !G.automationActive[id];
+}
+
+// Late-game products can burn through the default 600g resupply threshold in a single print,
+// so both the threshold and the buy-batch size are player-tunable rather than fixed.
+function setAutoFilamentThreshold(val) {
+  G.autoFilamentThreshold = Math.max(100, Math.min(50000, Math.round(Number(val)) || 600));
+}
+function setAutoFilamentQty(val) {
+  G.autoFilamentQty = Math.max(100, Math.min(100000, Math.round(Number(val)) || 1000));
 }
 
 // ========================
@@ -1126,21 +1309,40 @@ function triggerBulkOrder() {
   document.getElementById('bulk-modal').classList.add('open');
 }
 
+// Accepting no longer requires the inventory to already exist — it commits to a standing
+// order that shows up under ACTIVE ORDERS so the player can go print/build toward the goal.
+// It auto-fulfills the moment enough stock accumulates, and expires if that never happens.
 function acceptBulkOrder() {
   if (!G.pendingBulkOrder) return;
-  const inv = getProductStock(G.pendingBulkOrder.productId);
-  if (inv >= G.pendingBulkOrder.qty) {
-    consumeProductStock(G.pendingBulkOrder.productId, G.pendingBulkOrder.qty);
-    G.money += G.pendingBulkOrder.reward;
-    G.lifetimeEarned += G.pendingBulkOrder.reward;
-    G.incomeSamples.push({ t: now_t(), v: G.pendingBulkOrder.reward });
-    G.bulkOrdersAccepted++;
-    toast(`📬 Bulk order fulfilled! +$${fmtNum(G.pendingBulkOrder.reward)}`, 'success');
-  } else {
-    toast(`❌ Not enough inventory! Need ${G.pendingBulkOrder.qty} items.`, 'error');
-  }
+  const order = G.pendingBulkOrder;
+  const timeLimit = Math.round(180 + order.qty * 12);
+  G.activeOrders.push({ id: ++orderId, productId: order.productId, qty: order.qty, reward: order.reward, timeLeft: timeLimit });
+  toast(`📬 Order accepted — build ${order.qty}x ${PRODUCTS[order.productId].name} within ${fmtTimer(timeLimit)} to fulfill it. Check ACTIVE ORDERS on the Products tab.`, 'info', 5000);
   G.pendingBulkOrder = null;
   document.getElementById('bulk-modal').classList.remove('open');
+}
+
+// Checked every tick: auto-fulfills the instant a standing order's stock target is met,
+// and expires orders the player never got around to (or couldn't) fulfilling in time.
+function tickActiveOrders(dt) {
+  for (let i = G.activeOrders.length - 1; i >= 0; i--) {
+    const order = G.activeOrders[i];
+    order.timeLeft -= dt;
+    const have = getProductStock(order.productId);
+    if (have >= order.qty) {
+      consumeProductStock(order.productId, order.qty);
+      G.money += order.reward;
+      G.lifetimeEarned += order.reward;
+      G.incomeSamples.push({ t: now_t(), v: order.reward });
+      G.bulkOrdersAccepted++;
+      toast(`📬 Order fulfilled! +$${fmtNum(order.reward)}`, 'success');
+      spawnFloat(`+$${fmtNum(order.reward)}`);
+      G.activeOrders.splice(i, 1);
+    } else if (order.timeLeft <= 0) {
+      toast(`⌛ Order for ${order.qty}x ${PRODUCTS[order.productId].name} expired unfulfilled.`, 'warning');
+      G.activeOrders.splice(i, 1);
+    }
+  }
 }
 
 function declineBulkOrder() {
@@ -1154,7 +1356,11 @@ function declineBulkOrder() {
 function triggerExhibition() {
   const expo = EXHIBITIONS[Math.floor(Math.random() * EXHIBITIONS.length)];
   const cost = Math.round(expo.costMin + Math.random() * (expo.costMax - expo.costMin));
-  const followerGain = Math.round(expo.followerMin + Math.random() * (expo.followerMax - expo.followerMin));
+  // Base range gives the booth its own flavour of payoff; the scale factor grows with how far
+  // the shop has come (lifetime earnings), so there's no hard follower ceiling like a fixed max.
+  const progressScale = 1 + Math.sqrt(G.lifetimeEarned) / 150;
+  const base = Math.round(expo.followerBase[0] + Math.random() * (expo.followerBase[1] - expo.followerBase[0]));
+  const followerGain = Math.round(base * (1 + (progressScale - 1) * expo.followerScale));
   G.pendingExhibition = { name:expo.name, icon:expo.icon, cost, followerGain, boostMult:expo.boostMult, boostDuration:expo.boostDuration };
   document.getElementById('expo-modal-body').innerHTML = `<strong>${expo.icon} ${expo.name}</strong> has a booth open — attend for <strong>$${fmtNum(cost)}</strong> to reach ~${followerGain} new followers and a ×${expo.boostMult.toFixed(1)} value boost for ${Math.round(expo.boostDuration/60)} min.`;
   document.getElementById('expo-modal-cost').textContent = `$${fmtNum(cost)}`;
@@ -1209,6 +1415,7 @@ function acceptCommission(withModelling) {
   G.lifetimeEarned += reward;
   G.incomeSamples.push({ t: now_t(), v: reward });
   G.commissionsCompleted++;
+  if (withModelling) G.commissionsWithModelling = (G.commissionsWithModelling || 0) + 1;
   toast(`🖥️ Commission fulfilled${withModelling ? ' + 3D modelling upsell' : ''}! +$${fmtNum(reward)}`, 'success');
   G.pendingCommission = null;
   document.getElementById('commission-modal').classList.remove('open');
@@ -1248,6 +1455,10 @@ function triggerRandomEvent() {
   } else if (ev.type === 'demand') {
     G.demandEventMult = ev.mult;
     G.demandEventUntil = G.playTime + ev.duration;
+    toast(ev.msg(mins), ev.mult >= 1 ? 'success' : 'warning');
+  } else if (ev.type === 'speed') {
+    G.speedEventMult = ev.mult;
+    G.speedEventUntil = G.playTime + ev.duration;
     toast(ev.msg(mins), ev.mult >= 1 ? 'success' : 'warning');
   }
 }
@@ -1361,7 +1572,7 @@ function renderSidebar() {
         </div>
       </div>
       ${p.printing
-        ? `<div class="side-progress-track"><div class="side-progress-fill" id="pf-side-${p.id}" style="width:${pct}%;background:${pt.color}"></div></div><div class="side-progress-label" id="pct-side-${p.id}">${pct}%</div>`
+        ? `<div class="side-progress-track"><div class="side-progress-fill" id="pf-side-${p.id}" style="width:${pct}%;background:${pt.color}"></div></div><div class="side-progress-label"><span id="pct-side-${p.id}">${pct}</span>% · ETA <span id="eta-side-${p.id}">${fmtTimer(getPrintETA(p))}</span></div>`
         : `<div class="side-idle-label">Idle</div>`}
     </div>`;
   }
@@ -1379,8 +1590,10 @@ function updateLiveProgress() {
     const pct = Math.round(p.progress);
     const sideFill = document.getElementById('pf-side-' + p.id);
     const sideLabel = document.getElementById('pct-side-' + p.id);
+    const sideEta = document.getElementById('eta-side-' + p.id);
     if (sideFill) sideFill.style.width = pct + '%';
-    if (sideLabel) sideLabel.textContent = pct + '%';
+    if (sideLabel) sideLabel.textContent = pct;
+    if (sideEta) sideEta.textContent = fmtTimer(getPrintETA(p));
   }
   if (activeTab === 'printers') {
     for (const p of G.printers) {
@@ -1388,8 +1601,10 @@ function updateLiveProgress() {
       const pct = Math.round(p.progress);
       const fill = document.getElementById('pf-' + p.id);
       const label = document.getElementById('pct-' + p.id);
+      const eta = document.getElementById('eta-' + p.id);
       if (fill) fill.style.width = pct + '%';
-      if (label) label.textContent = pct + '%';
+      if (label) label.textContent = pct;
+      if (eta) eta.textContent = fmtTimer(getPrintETA(p));
     }
   } else if (activeTab === 'studio') {
     for (const station of G.processingStations) {
@@ -1425,6 +1640,10 @@ function getActiveBuffs() {
   if (now < G.demandEventUntil && G.demandEventMult !== 1) {
     const buff = G.demandEventMult >= 1;
     buffs.push({ icon: buff ? '⭐' : '📮', label: `Demand ×${G.demandEventMult.toFixed(2)}`, remaining: G.demandEventUntil - now, buff });
+  }
+  if (now < G.speedEventUntil && G.speedEventMult !== 1) {
+    const buff = G.speedEventMult >= 1;
+    buffs.push({ icon: buff ? '💾' : '🧯', label: `Speed ×${G.speedEventMult.toFixed(2)}`, remaining: G.speedEventUntil - now, buff });
   }
   return buffs;
 }
@@ -1483,6 +1702,13 @@ function renderPrinters() {
           <select class="sel" onchange="setPrinterColor(${p.id}, this.value)" title="Colour loaded">
             ${getAllowedColors(p.material).map(cid => COLORS[cid]).map(c => `<option value="${c.id}" ${p.color===c.id?'selected':''}>${c.icon} ${c.name}</option>`).join('')}
           </select>
+          ${Array.from({ length: getMaxAccentColors() }).map((_, i) => {
+            const cur = (p.accentColors || [])[i] || '';
+            return `<select class="sel" onchange="setPrinterAccentColor(${p.id}, ${i}, this.value)" title="Accent colour ${i+1}">
+              <option value="">— accent ${i+1} —</option>
+              ${getAllowedColors(p.material).map(cid => COLORS[cid]).map(c => `<option value="${c.id}" ${cur===c.id?'selected':''}>${c.icon} ${c.name}</option>`).join('')}
+            </select>`;
+          }).join('')}
           ${!isActive
             ? `<button class="btn btn-primary btn-sm" onclick="manualStartPrint(${p.id})">▶ PRINT</button>`
             : `<button class="btn btn-stop btn-sm" onclick="stopPrinter(${p.id})">■ STOP</button>`}
@@ -1494,10 +1720,13 @@ function renderPrinters() {
       const pt2 = PRINTER_TYPES[p.typeId];
       const filCost = fmtG(getFilamentCost(prod, p.typeId));
       const matInfo = MATERIALS[p.material];
+      const activeAccents = (p.activeJob && p.activeJob.accentColors) || [];
+      const previewMult = activeAccents.length ? 1 + activeAccents.length * 0.1 : 1;
+      const multiTag = activeAccents.length ? ` <span class="multicolor-tag">🎨 +${activeAccents.length}</span>` : '';
       html += `<div class="progress-wrap">
         <div class="progress-label">
-          <span>Printing ${prod.icon} ${prod.name} · ${filCost} ${matInfo.icon}${matInfo.name} → $${fmtNum(getProductValue(p.job, p.typeId, p.material, p.color))}</span>
-          <span id="pct-${p.id}">${pct}%</span>
+          <span>Printing ${prod.icon} ${prod.name} · ${filCost} ${matInfo.icon}${matInfo.name} → $${fmtNum(getProductValue(p.job, p.typeId, p.material, p.color, previewMult))}${multiTag}</span>
+          <span><span id="pct-${p.id}">${pct}</span>% · ETA <span id="eta-${p.id}">${fmtTimer(getPrintETA(p))}</span></span>
         </div>
         <div class="progress-track">
           <div class="progress-fill" id="pf-${p.id}" style="width:${pct}%;background:${pt2.color}"></div>
@@ -1661,12 +1890,34 @@ function sellPrinter(pid) {
   toast(`🗑 Sold ${pt.name} for $${fmtNum(refund)}`, 'info');
 }
 
+// Standing bulk-order goals — the player builds product to hit the quantity target rather than
+// needing the stock on hand at accept-time; auto-fulfills once ready.
+function renderActiveOrders() {
+  const wrap = el('active-orders-section');
+  if (!wrap) return;
+  if (!G.activeOrders.length) { wrap.innerHTML = ''; return; }
+  let html = `<div class="cat-header"><div class="cat-label">📬 ACTIVE ORDERS</div><div class="cat-line"></div></div><div class="grid-3" style="margin-bottom:16px">`;
+  for (const order of G.activeOrders) {
+    const prod = PRODUCTS[order.productId];
+    const have = getProductStock(order.productId);
+    const ready = have >= order.qty;
+    html += `<div class="card ${ready ? 'highlight' : ''}">
+      <div class="card-header"><span class="card-icon">${prod.icon}</span><div><div class="card-title">${order.qty}× ${prod.name}</div><div class="card-sub">Reward: $${fmtNum(order.reward)}</div></div></div>
+      <div class="card-body">Progress: ${Math.min(have, order.qty)} / ${order.qty} in stock</div>
+      <div class="tip" style="color:${order.timeLeft < 60 ? 'var(--red)' : 'var(--text2)'}">${ready ? '✅ Ready — fulfilling now!' : `Expires in ${fmtTimer(order.timeLeft)}`}</div>
+    </div>`;
+  }
+  html += `</div>`;
+  morph(wrap, html);
+}
+
 function renderProducts() {
   // Ticker
   const tickerWrap = el('order-ticker-wrap');
   if (G.bulkOrdersEnabled) {
     tickerWrap.innerHTML = `<div class="order-ticker"><div class="ticker-dot"></div>Live market active · Bulk orders enabled · Dynamic pricing ${G.automationOwned.price_opt && G.automationActive.price_opt ? 'ON (+22%)' : 'OFF'}</div>`;
   } else tickerWrap.innerHTML = '';
+  renderActiveOrders();
 
   // Sell grid — inventory is grouped by product, but each material/colour/printer combo is its
   // own stack with its own price. Customers buy these off automatically over time (based on your
@@ -1691,9 +1942,10 @@ function renderProducts() {
       <div class="stack-list">`;
     for (const s of stacks) {
       const mat = MATERIALS[s.material], col = COLORS[s.color], pt = PRINTER_TYPES[s.printerTypeId];
-      const val = getProductValue(pid, s.printerTypeId, s.material, s.color);
+      const val = getProductValue(pid, s.printerTypeId, s.material, s.color, s.multiColorMult);
+      const multiTag = (s.accentColors && s.accentColors.length) ? ` <span class="multicolor-tag">🎨 +${s.accentColors.length}</span>` : '';
       sellHtml += `<div class="stack-row">
-        <span class="stack-desc">${mat?.icon||''}${mat?.name||'?'} · ${col?.icon||''}${col?.name||'?'} · ${pt?.name||'?'}</span>
+        <span class="stack-desc">${mat?.icon||''}${mat?.name||'?'} · ${col?.icon||''}${col?.name||'?'} · ${pt?.name||'?'}${multiTag}</span>
         <span class="stack-qty">${s.qty}× @ $${fmtNum(val)}</span>
         <span class="stack-actions">
           <button class="btn btn-ghost btn-xs" onclick="liquidateStack('${s.key}',1,event)">LIQUIDATE 1</button>
@@ -1835,7 +2087,7 @@ function renderTechLane(catId) {
 
 function renderUpgrades() {
   const wrap = el('upgrades-content');
-  const cats = { speed:'⚡ PRINT SPEED', efficiency:'📦 EFFICIENCY', space:'🏠 WORKSHOP SPACE', business:'💼 BUSINESS', quality:'✨ QUALITY' };
+  const cats = { speed:'⚡ PRINT SPEED', efficiency:'📦 EFFICIENCY', space:'🏠 WORKSHOP SPACE', business:'💼 BUSINESS', quality:'✨ QUALITY', nozzle:'🖌️ MULTI-COLOUR NOZZLES' };
   let html = '';
 
   if (G.prestigeCount > 0) {
@@ -1882,7 +2134,7 @@ function renderAutomation() {
       if (a.tier !== Number(tierNum)) continue;
       const owned = !!G.automationOwned[aid];
       const active = !!G.automationActive[aid];
-      const reqOk = !a.req || G.upgrades[a.req];
+      const reqOk = (!a.req || G.upgrades[a.req]) && (!a.reqAuto || G.automationOwned[a.reqAuto]);
       html += `<div class="auto-card ${owned && active ? 'active' : ''}">
         <div class="auto-header">
           <div class="auto-icon">${a.icon}</div>
@@ -1899,12 +2151,12 @@ function renderAutomation() {
                ${active ? 'RUNNING' : 'PAUSED'}</span>`
             : reqOk
               ? `<button class="btn btn-cyan btn-sm" onclick="buyAutomation('${aid}')" ${G.money<a.cost?'disabled':''}>INSTALL — $${fmtNum(a.cost)}</button>`
-              : `<span style="font-size:11px;color:var(--text3)">Requires: ${UPGRADES[a.req]?.name || a.req}</span>`}
+              : `<span style="font-size:11px;color:var(--text3)">Requires: ${a.req ? (UPGRADES[a.req]?.name || a.req) : (AUTOMATION_ITEMS[a.reqAuto]?.name || a.reqAuto)}</span>`}
         </div>
         ${owned && aid === 'auto_filament' ? `
         <div class="auto-settings">
-          <div class="setting-row"><span>Resupply threshold</span><span class="setting-val">600g</span></div>
-          <div class="setting-row"><span>Buy amount</span><span class="setting-val">1,000g</span></div>
+          <div class="setting-row"><span>Resupply threshold${G.automationOwned.smart_restock && G.automationActive.smart_restock ? ' (×1.8 w/ Smart Restock)' : ''}</span><input type="number" class="setting-input" min="100" max="50000" step="100" value="${G.autoFilamentThreshold}" onchange="setAutoFilamentThreshold(this.value)">g</div>
+          <div class="setting-row"><span>Buy amount</span><input type="number" class="setting-input" min="100" max="100000" step="100" value="${G.autoFilamentQty}" onchange="setAutoFilamentQty(this.value)">g</div>
         </div>` : ''}
         ${owned && aid === 'auto_liquidate' ? `
         <div class="auto-settings">
@@ -1961,7 +2213,7 @@ function renderStudio() {
       const prod = PRODUCTS[stack.productId];
       const mat = MATERIALS[stack.material], col = COLORS[stack.color];
       html += `<div class="card">
-        <div class="card-header"><span class="card-icon">${prod.icon}</span><div><div class="card-title">${prod.name}</div><div class="card-sub">${mat?.icon||''}${mat?.name||''} · ${col?.icon||''}${col?.name||''} · ${stack.qty} raw · sell @ $${fmtNum(getRawSaleValue(stack.productId, stack.printerTypeId, stack.material, stack.color))}</div></div></div>
+        <div class="card-header"><span class="card-icon">${prod.icon}</span><div><div class="card-title">${prod.name}</div><div class="card-sub">${mat?.icon||''}${mat?.name||''} · ${col?.icon||''}${col?.name||''} · ${stack.qty} raw · sell @ $${fmtNum(getRawSaleValue(stack.productId, stack.printerTypeId, stack.material, stack.color, stack.multiColorMult))}</div></div></div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="btn btn-cyan btn-sm" onclick="sendToProcessing('${key}')">🎨 PROCESS</button>
           <button class="btn btn-ghost btn-sm" onclick="sellRaw('${key}',1,event)">SELL RAW</button>
@@ -1979,9 +2231,9 @@ function renderStudio() {
     const unpaid = G.staffUnpaid[roleId];
     html += `<div class="auto-card ${current ? 'active' : ''}">
       <div class="auto-header"><div class="auto-icon">${current==='robot' ? role.robotIcon : role.icon}</div>
-        <div><div class="auto-title">${current==='robot' ? role.robotName : role.name}</div><div class="auto-tier">${roleId === 'finisher' ? 'Finishing Studio' : 'Marketing'}</div></div>
+        <div><div class="auto-title">${current==='robot' ? role.robotName : role.name}</div><div class="auto-tier">${{finisher:'Finishing Studio', marketer:'Marketing', procurement:'Purchasing', supervisor:'Print Floor'}[roleId] || ''}</div></div>
       </div>
-      <div class="auto-desc">${role.desc}</div>`;
+      <div class="auto-desc">${role.desc}${role.effect ? ` <span style="color:var(--accent2)">(${role.effect})</span>` : ''}</div>`;
     if (!current) {
       html += `<div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-cyan btn-sm" onclick="hireWorker('${roleId}')">HIRE — $${role.wage.toFixed(2)}/sec</button>
@@ -1996,7 +2248,10 @@ function renderStudio() {
         </div>
       </div>`;
     } else {
-      html += `<span style="font-family:var(--font-mono);font-size:11px;color:var(--accent2)">✓ AUTOMATED — NO WAGES</span>`;
+      html += `<div class="toggle-row">
+        <span style="font-family:var(--font-mono);font-size:11px;color:var(--accent2)">✓ AUTOMATED — NO WAGES</span>
+        <button class="btn btn-stop btn-xs" onclick="fireWorker('${roleId}')">DECOMMISSION</button>
+      </div>`;
     }
     html += `</div>`;
   }
@@ -2119,6 +2374,7 @@ function loadGame() {
     // Migrate printerId
     printerId = Math.max(...G.printers.map(p=>p.id), 0);
     stationId = Math.max(...G.processingStations.map(s=>s.id), 0);
+    orderId = Math.max(...G.activeOrders.map(o=>o.id), 0);
     return true;
   } catch(e) {
     console.error('Load failed', e);
@@ -2167,6 +2423,7 @@ function importSave(b64) {
     G.incomeSamples = [];
     printerId = Math.max(...G.printers.map(p=>p.id), 0);
     stationId = Math.max(...G.processingStations.map(s=>s.id), 0);
+    orderId = Math.max(...G.activeOrders.map(o=>o.id), 0);
     toast('📂 Save imported!', 'success');
     lastTabRender = 0;
     return true;
@@ -2255,6 +2512,21 @@ const GITHUB_PROFILE_URL = 'https://github.com/TheBooleanJulian';
 // change) since the full detailed history lives in README.md; this is just enough to answer
 // "what's new" without leaving the game.
 const CHANGELOG = [
+  { version:'1.10.0', notes:[
+    'Multi-colour nozzle upgrades (Dual/Quad-Colour Nozzle Head) and multi-colour print value bonus',
+    'Filament Recycler upgrade recovers a % of filament from failed prints',
+    'Bulk orders are now accepted as standing goals — build toward them instead of needing stock upfront; track them under ACTIVE ORDERS',
+    'Filament auto-resupply threshold and buy amount are now user-adjustable in Automation',
+    'Added live print ETA to printer cards and the sidebar',
+    'Bender 3 Clone additional units now cost $189 (first one is still free)',
+    '9 new tech tree nodes, 2 new automation modules, and 2 new staff roles (Procurement Manager, Floor Supervisor)',
+    '10 new hard-to-earn achievements',
+    'Passive follower growth over time once Social Media Presence is researched',
+    'More random event variety, including new speed buffs/debuffs',
+    'Exhibitions: removed the hard follower cap (payoff now scales with progress) and added 4 new exhibition types',
+    'Added a first-time tutorial walkthrough for new players',
+    'Splash screen: "START NEW CAREER" / "Continue as <shop name>"',
+  ]},
   { version:'1.9.0', notes:[
     'Node-based tech tree for Upgrades, with more research nodes',
     'Always-visible sidebar showing every printer\'s live print status',
@@ -2507,7 +2779,55 @@ function fmtPlaytime(s) {
 // ========================
 // INIT
 // ========================
+// ========================
+// TUTORIAL (first-time players only, on a brand new game)
+// ========================
+const TUTORIAL_SEEN_KEY = '3dp_tutorial_seen';
+const TUTORIAL_STEPS = [
+  { title:'👋 WELCOME TO 3DP TYCOON', body:'You\'re starting with one free printer, $50, and a bit of black PLA. Turn that into a printing empire, one sale at a time.' },
+  { title:'🖨️ THE PRINTERS TAB', body:'Pick what to print, which material and colour to load, then hit ▶ PRINT. Watch the progress bar and ETA — a failed print wastes filament, so check the fail-risk stats before buying a new machine.' },
+  { title:'📦 SELLING YOUR STOCK', body:'Finished prints land in your PRODUCTS tab. LIQUIDATE cashes a stack out instantly below market rate — your day-one cash flow. Research CraftBazaar Shop (Upgrades tab) to unlock customers buying automatically over time, for full price.' },
+  { title:'🔬 UPGRADES & 🤖 AUTOMATION', body:'The Upgrades tab is a branching tech tree — research speed, efficiency, and business nodes to boost everything you do. The Automation tab lets you buy modules that run your shop hands-free while you\'re away.' },
+  { title:'🎬 THE STUDIO TAB', body:'Hire workers (or buy robots for no ongoing wages) to run your Finishing Studio and post marketing timelapses automatically. Keep an eye on the buffs/debuffs bar under the top HUD — random events swing your fortunes both ways.' },
+  { title:'🚀 YOU\'RE READY', body:'Everything else — bulk orders, exhibitions, custom commissions — will introduce itself as it comes up. Good luck out there!' },
+];
+let tutorialStep = 0;
+
+function maybeShowTutorial() {
+  if (localStorage.getItem(TUTORIAL_SEEN_KEY)) return;
+  tutorialStep = 0;
+  renderTutorialStep();
+  document.getElementById('tutorial-modal').classList.add('open');
+}
+
+function renderTutorialStep() {
+  const step = TUTORIAL_STEPS[tutorialStep];
+  document.getElementById('tutorial-title').textContent = step.title;
+  document.getElementById('tutorial-body').textContent = step.body;
+  document.getElementById('tutorial-dots').innerHTML = TUTORIAL_STEPS.map((_, i) => `<span class="tutorial-dot${i===tutorialStep?' active':''}"></span>`).join('');
+  document.getElementById('tutorial-next-btn').textContent = tutorialStep === TUTORIAL_STEPS.length - 1 ? "LET'S GO! 🖨️" : 'NEXT ▶';
+}
+
+function nextTutorialStep() {
+  tutorialStep++;
+  if (tutorialStep >= TUTORIAL_STEPS.length) { closeTutorial(); return; }
+  renderTutorialStep();
+}
+
+function skipTutorial() { closeTutorial(); }
+
+function closeTutorial() {
+  localStorage.setItem(TUTORIAL_SEEN_KEY, '1');
+  document.getElementById('tutorial-modal').classList.remove('open');
+}
+
 function startGame() {
+  // Guard against silently overwriting an existing save — e.g. if the player reloaded the page
+  // (splash always shows on load) and clicked START PRINTING instead of Continue Saved Game.
+  if (localStorage.getItem('3dp_tycoon_save')) {
+    const proceed = confirm('⚠️ You already have a saved game in this browser.\n\nStarting a new game will permanently OVERWRITE it as soon as autosave runs — this cannot be undone.\n\nClick Cancel, then use "📂 Continue Saved Game" instead if you want to keep your progress.\n\nStart a brand new game anyway?');
+    if (!proceed) return;
+  }
   const nameInput = document.getElementById('shop-name-input');
   const shopName = nameInput.value.trim() || 'MY PRINT SHOP';
   G = defaultState(shopName.toUpperCase());
@@ -2516,6 +2836,7 @@ function startGame() {
   startLoop();
   toast('🖨️ Welcome to 3DP Tycoon! Start printing to earn money.', 'info', 5000);
   saveGame(true);
+  maybeShowTutorial();
 }
 
 // Keyboard shortcuts
@@ -2546,10 +2867,13 @@ window.addEventListener('beforeunload', () => {
 
 // Check for existing save on load
 window.addEventListener('load', () => {
-  const hasSave = !!localStorage.getItem('3dp_tycoon_save');
-  if (hasSave) {
-    const loadBtn = document.querySelector('.splash-load');
-    loadBtn.textContent = '📂 Continue Saved Game';
+  const raw = localStorage.getItem('3dp_tycoon_save');
+  if (raw) {
+    let saveName = 'Saved Game';
+    try { saveName = JSON.parse(raw).shopName || saveName; } catch(e) {}
+    const loadBtn = document.getElementById('splash-continue-btn');
+    loadBtn.textContent = `📂 Continue as ${saveName}`;
+    loadBtn.style.display = '';
     loadBtn.style.borderColor = 'var(--green)';
     loadBtn.style.color = 'var(--green)';
   }

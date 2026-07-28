@@ -8,7 +8,7 @@
 
 An idle incremental business simulator where you grow a home-based 3D printing operation into a full manufacturing empire.
 
-![Version](https://img.shields.io/badge/version-1.9.0-00D4C8)
+![Version](https://img.shields.io/badge/version-1.10.0-00D4C8)
 ![JavaScript](https://img.shields.io/badge/-JavaScript-F7DF1E?logo=javascript&logoColor=black)
 ![Node.js](https://img.shields.io/badge/-Node.js-339933?logo=node.js&logoColor=white)
 ![License](https://img.shields.io/badge/license-AGPLv3%20%2B%20Commercial-00D4C8.svg)
@@ -286,6 +286,20 @@ Push to GitHub and enable Pages for the `main` branch.
 ## 📋 Changelog
 
 Versioning follows `MAJOR.MINOR.PATCH`: **major** bumps for breaking/structural changes (save format, core loop rework), **minor** bumps for new features (printers, products, systems), **patch** bumps for balance tweaks and bug fixes.
+
+### v1.10.0
+- Multi-colour printing: Dual/Quad-Colour Nozzle Head upgrades let printers add accent colours to a print for a value bonus, drawing a smaller top-up of filament from each accent colour's own stock
+- Filament Recycler upgrade recovers a percentage of filament from failed prints instead of wasting it outright (with a follow-up "High-Yield Regrind" upgrade improving the yield)
+- Bulk orders reworked: accepting one no longer requires the stock to already exist — it becomes a standing goal shown under a new ACTIVE ORDERS panel (Products tab), auto-fulfilling the moment you've built enough, and expiring if you run out the clock
+- Filament auto-resupply threshold and buy-batch size are now editable numbers in the Automation tab, instead of a fixed 600g/1000g — late-game products can burn through the old default in a single print
+- Added a live print ETA (countdown) to every printer card and the always-visible sidebar
+- Bender 3 Clone: additional units now cost $189 (your first one is still free) to close a $0-printer exploit
+- 9 new tech tree nodes across Speed/Efficiency/Business/Quality, 2 new automation modules (Remote Fleet Monitoring, Demand Forecasting AI), and 2 new staff roles (Procurement Manager cuts filament cost, Floor Supervisor cuts fail rate)
+- 10 new achievements, several deliberately hard to earn (full tech tree, all-robot workforce, one of every printer at max count, a 100-print flawless streak, and more)
+- Followers now grow slowly on their own once Social Media Presence is researched, on top of posting timelapses
+- Added 6 new random events (including new speed buffs/debuffs), and reworked exhibitions so the follower payoff scales with your progress instead of being capped by a fixed max — plus 4 new exhibition types
+- Added a short first-time tutorial walkthrough shown once, on a brand-new game
+- Splash screen buttons renamed to "START NEW CAREER" and "Continue as &lt;your shop name&gt;"; starting a new career over an existing save now warns before it can be overwritten
 
 ### v1.9.0
 - Upgrades tab rebuilt as a node-based tech tree: each category is now a horizontally-scrolling lane of nodes connected by prerequisite lines that branch rightward, instead of a flat card grid
