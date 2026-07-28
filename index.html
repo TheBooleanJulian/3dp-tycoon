@@ -66,6 +66,7 @@
     </div>
   </div>
   <div class="hud-right">
+    <button class="btn-hud" onclick="openGuide()" title="In-game guide — how to play, printers, materials, and more">📖 GUIDE</button>
     <button class="btn-hud" onclick="openSettings()" title="Settings — save, export/import, theme, UI scale">⚙ SETTINGS</button>
   </div>
 </header>
@@ -206,6 +207,17 @@
       <button class="btn btn-green" onclick="acceptCommission(true)">🖥️ ACCEPT + MODELLING UPSELL</button>
       <button class="btn btn-primary" onclick="acceptCommission(false)">✅ ACCEPT (PRINT ONLY)</button>
       <button class="btn btn-ghost" onclick="declineCommission()">❌ DECLINE</button>
+    </div>
+  </div>
+</div>
+
+<!-- In-game Guide Modal -->
+<div id="guide-modal">
+  <div class="modal-box guide-modal-box">
+    <div class="modal-title">📖 GAME GUIDE</div>
+    <div id="guide-content" class="guide-content"></div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeGuide()">CLOSE</button>
     </div>
   </div>
 </div>

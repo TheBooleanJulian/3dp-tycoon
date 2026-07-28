@@ -1,7 +1,7 @@
 // ========================
 // GAME DATA
 // ========================
-const VERSION = '1.10.0';
+const VERSION = '1.10.1';
 
 // PRODUCT_BASES are the 20 "common" items — the plain, baseline version of each category.
 // Each one also spawns 4 variant tiers (see PRODUCT_VARIANTS below) so that almost no two
@@ -2512,6 +2512,9 @@ const GITHUB_PROFILE_URL = 'https://github.com/TheBooleanJulian';
 // change) since the full detailed history lives in README.md; this is just enough to answer
 // "what's new" without leaving the game.
 const CHANGELOG = [
+  { version:'1.10.1', notes:[
+    'Added an in-game 📖 GUIDE (top-right HUD) covering how to play, printers, products, materials, workshop space, exhibitions, the Finishing Studio, workforce, marketing, commissions, bulk orders, random events, and keyboard shortcuts — no need to read the README',
+  ]},
   { version:'1.10.0', notes:[
     'Multi-colour nozzle upgrades (Dual/Quad-Colour Nozzle Head) and multi-colour print value bonus',
     'Filament Recycler upgrade recovers a % of filament from failed prints',
@@ -2561,6 +2564,95 @@ const CHANGELOG = [
     'Added filament materials and colours, loaded independently per printer',
   ]},
 ];
+
+// ========================
+// IN-GAME GUIDE (condensed from README, for players who never see GitHub)
+// ========================
+const GUIDE_SECTIONS = [
+  { icon:'🎮', title:'HOW TO PLAY', html:`<ol>
+    <li>Select a product and hit ▶ PRINT on your Bender 3 Clone.</li>
+    <li>LIQUIDATE a finished stack instantly for cash below market rate — works from the start, before any upgrades. Research CraftBazaar Shop (Upgrades) to also get automatic full-price sales over time.</li>
+    <li>Buy filament in specific materials <em>and colours</em> — a printer loaded with red only draws red stock.</li>
+    <li>Research speed, efficiency, quality, and business upgrades in the tech tree.</li>
+    <li>Automate: auto-print, auto-liquidate overflow, and filament resupply are all cheap early unlocks.</li>
+    <li>Buy more printers and unlock premium products as you grow.</li>
+    <li>You start with room for 1 printer — research shelving to grow to 8, then rent office/industrial space.</li>
+    <li>Research the Post-Processing Kit to sand/smooth/paint prints for full value in the Studio tab.</li>
+    <li>Post timelapse clips or attend exhibitions for followers, value boosts, and a shot at going viral.</li>
+    <li>Hire workers (wages) or buy robot arms (one-time cost) to automate Finishing and Marketing.</li>
+    <li>Research 3D Modelling Service to receive custom commission requests and upsell CAD design.</li>
+    <li>Scale Up (prestige) once you qualify for a permanent earnings multiplier.</li>
+  </ol>` },
+  { icon:'🖨️', title:'PRINTERS', html:`<p>Every printer trades off <strong>speed</strong>, <strong>quality</strong> (value multiplier), and <strong>cost</strong> — there's no single best machine. Whatever printer/material/colour actually produced an item sets its price, so your fleet's output isn't blended into one average.</p>
+  <table class="guide-table"><tr><th>Printer</th><th>Cost</th><th>Speed</th><th>Notes</th></tr>
+  <tr><td>Bender 3 Clone</td><td>Free (1st)</td><td>1×</td><td>Reliable starter</td></tr>
+  <tr><td>PrintPal Mini (Resin)</td><td>$150</td><td>1.3×</td><td>Cheap but wasteful & finicky</td></tr>
+  <tr><td>Mambo Lab A1</td><td>$800</td><td>2.5×</td><td>Solid all-rounder</td></tr>
+  <tr><td>Proton Mono M5S (Resin)</td><td>$2,200</td><td>3.5×</td><td>+60% miniature value</td></tr>
+  <tr><td>Mambo X1 Carbon</td><td>$3,500</td><td>5×</td><td>Fast, industry standard</td></tr>
+  <tr><td>Boron 2.4 350</td><td>$9,500</td><td>9×</td><td>Extreme speed, less reliable</td></tr>
+  <tr><td>Gantry X9 Farm Unit</td><td>$18,000</td><td>14×</td><td>Volume over finish</td></tr>
+  <tr><td>Helix CNC Precision Mill</td><td>$30,000</td><td>2×</td><td>Slow, very high quality</td></tr>
+  <tr><td>Industrial FDM</td><td>$55,000</td><td>18×</td><td>Commercial bulk production</td></tr>
+  <tr><td>Titan SLS Metal Printer</td><td>$120,000</td><td>4×</td><td>Best-in-class, slow & pricey</td></tr>
+  </table>` },
+  { icon:'📦', title:'PRODUCTS', html:`<p>100 products: 20 base categories from cheap novelties to aerospace-grade components, each with 4 unlockable variant tiers.</p>
+  <table class="guide-table"><tr><th>Variant</th><th>Value</th><th>Filament</th><th>Print time</th><th>Unlock cost</th></tr>
+  <tr><td>Mini</td><td>0.55×</td><td>0.5×</td><td>0.5×</td><td>0.5×</td></tr>
+  <tr><td>Glow-in-the-Dark</td><td>1.35×</td><td>1.15×</td><td>1.15×</td><td>1.4× + $150</td></tr>
+  <tr><td>Deluxe</td><td>1.9×</td><td>1.6×</td><td>1.5×</td><td>2× + $400</td></tr>
+  <tr><td>Custom Engraved</td><td>1.6×</td><td>1.1×</td><td>1.3×</td><td>2.5× + $600</td></tr>
+  </table>` },
+  { icon:'🧵', title:'MATERIALS & COLOURS', html:`<p>Each printer loads its own material and colour — swap either any time from the printer card.</p>
+  <table class="guide-table"><tr><th>Material</th><th>Class</th><th>Cost</th><th>Quality</th></tr>
+  <tr><td>PLA</td><td>Filament</td><td>Baseline</td><td>Baseline</td></tr>
+  <tr><td>PETG</td><td>Filament</td><td>+30%</td><td>+8%, fewer fails</td></tr>
+  <tr><td>ABS</td><td>Filament</td><td>+15%</td><td>+3%, warps/fails more</td></tr>
+  <tr><td>TPU (Flexible)</td><td>Filament</td><td>+80%</td><td>+12%, trickier</td></tr>
+  <tr><td>Nylon</td><td>Filament</td><td>+120%</td><td>+20%, absorbs moisture</td></tr>
+  <tr><td>Carbon Fiber Composite</td><td>Filament</td><td>+200%</td><td>+35%, black only</td></tr>
+  <tr><td>Standard Resin</td><td>Resin</td><td>+150%</td><td>+15%</td></tr>
+  <tr><td>Tough Resin</td><td>Resin</td><td>+250%</td><td>+30%, more reliable</td></tr>
+  </table>
+  <p>Colour is mostly cosmetic but nudges value slightly. Filament stock is tracked <em>per material and per colour</em> — buy the colours you actually intend to print. Carbon Fiber is only ever produced in black.</p>` },
+  { icon:'🏠', title:'WORKSHOP SPACE', html:`<p>You start with room for just 1 printer. Cheap shelving upgrades (Workshop Space tree) grow that to 8; rent external space to keep growing beyond that. Rent is deducted automatically like staff wages — falling behind pauses the space's capacity bonus until you catch up (existing printers keep working).</p>` },
+  { icon:'🎪', title:'EXHIBITIONS', html:`<p>Once you've researched Social Media Presence, random exhibition invitations pop up, from small local meetups up to national manufacturing summits. Pay the booth cost to gain followers and a temporary value boost, or skip it for free — the follower payoff scales with your progress rather than capping out.</p>` },
+  { icon:'🎨', title:'FINISHING STUDIO', html:`<p>Unlocked by the <strong>Post-Processing Kit</strong> upgrade. Raw prints wait in Raw Inventory until run through Sanding 🧹 → Smoothing 🪄 → Painting 🖌️. Fully finished items sell for full value; skipping the studio and selling raw pays only 65%. Build up to 4 stations, or automate the whole pipeline with a Finishing Technician / Finishing Robot Arm.</p>` },
+  { icon:'🦾', title:'WORKFORCE', html:`<p>Hire workers (paid automatically each tick, pausing if you run out of cash) or buy robot arms (one-time cost, no ongoing wages) for four roles:</p>
+  <table class="guide-table"><tr><th>Role</th><th>Effect</th></tr>
+  <tr><td>Finishing Technician / Robot Arm</td><td>Auto-feeds idle Finishing Studio stations</td></tr>
+  <tr><td>Social Media Manager / Autoposter Bot</td><td>Posts timelapse clips automatically</td></tr>
+  <tr><td>Procurement Manager / Procurement AI</td><td>−10% filament cost</td></tr>
+  <tr><td>Floor Supervisor / QC Sentry Drone</td><td>−12% print failure rate</td></tr>
+  </table>` },
+  { icon:'📲', title:'MARKETING', html:`<p>Completed prints have a chance to capture a timelapse clip — post it from the Studio tab for followers and a temporary sell-value boost, with a chance to go viral for a much bigger payout. Followers also grant a small permanent value bonus, and once Social Media Presence is researched they'll trickle up slowly on their own too.</p>` },
+  { icon:'🖥️', title:'CUSTOM COMMISSIONS', html:`<p>Research <strong>3D Modelling Service</strong> (Business tree) to start receiving custom commission requests. Accept print-only for the base reward, or accept with the modelling upsell for an extra fee representing the CAD design work.</p>` },
+  { icon:'📬', title:'BULK ORDERS', html:`<p>Accepting a bulk order commits you to a standing goal, not an instant transaction — build (or already have) enough stock of the requested product before the timer runs out and it fulfills automatically. Track everything currently owed under <strong>ACTIVE ORDERS</strong> on the Products tab.</p>` },
+  { icon:'🎲', title:'RANDOM EVENTS', html:`<p>Beyond bulk orders, exhibitions, and commissions, your shop is subject to periodic random swings — filament discounts/price hikes, equipment malfunctions or freshly-serviced nozzles (fail-rate up/down), press features or viral screenshots (followers), rave reviews/trending hashtags/shipping delays (demand), and firmware tweaks/maintenance days (print speed). Active ones show as chips with a countdown under the top HUD.</p>` },
+  { icon:'🔑', title:'KEYBOARD SHORTCUTS', html:`<table class="guide-table"><tr><th>Key</th><th>Action</th></tr>
+  <tr><td><span class="guide-key">\`</span></td><td>Open debug console</td></tr>
+  <tr><td><span class="guide-key">1–6</span></td><td>Switch tabs (Printers, Products, Upgrades, Automation, Studio, Stats)</td></tr>
+  <tr><td><span class="guide-key">Ctrl+S</span></td><td>Save game</td></tr>
+  </table>` },
+];
+
+function openGuide() {
+  const content = document.getElementById('guide-content');
+  if (!content.dataset.filled) {
+    content.dataset.filled = '1';
+    content.innerHTML = GUIDE_SECTIONS.map(sec => `
+      <div class="guide-section">
+        <div class="guide-section-title">${sec.icon} ${sec.title}</div>
+        ${sec.html}
+      </div>
+    `).join('');
+  }
+  document.getElementById('guide-modal').classList.add('open');
+}
+
+function closeGuide() {
+  document.getElementById('guide-modal').classList.remove('open');
+}
 
 function openSettings() {
   document.getElementById('settings-modal').classList.add('open');
@@ -2789,7 +2881,7 @@ const TUTORIAL_STEPS = [
   { title:'📦 SELLING YOUR STOCK', body:'Finished prints land in your PRODUCTS tab. LIQUIDATE cashes a stack out instantly below market rate — your day-one cash flow. Research CraftBazaar Shop (Upgrades tab) to unlock customers buying automatically over time, for full price.' },
   { title:'🔬 UPGRADES & 🤖 AUTOMATION', body:'The Upgrades tab is a branching tech tree — research speed, efficiency, and business nodes to boost everything you do. The Automation tab lets you buy modules that run your shop hands-free while you\'re away.' },
   { title:'🎬 THE STUDIO TAB', body:'Hire workers (or buy robots for no ongoing wages) to run your Finishing Studio and post marketing timelapses automatically. Keep an eye on the buffs/debuffs bar under the top HUD — random events swing your fortunes both ways.' },
-  { title:'🚀 YOU\'RE READY', body:'Everything else — bulk orders, exhibitions, custom commissions — will introduce itself as it comes up. Good luck out there!' },
+  { title:'🚀 YOU\'RE READY', body:'Everything else — bulk orders, exhibitions, custom commissions — will introduce itself as it comes up. Forgot something? Click 📖 GUIDE in the top-right any time for the full rundown. Good luck out there!' },
 ];
 let tutorialStep = 0;
 

@@ -8,7 +8,7 @@
 
 An idle incremental business simulator where you grow a home-based 3D printing operation into a full manufacturing empire.
 
-![Version](https://img.shields.io/badge/version-1.10.0-00D4C8)
+![Version](https://img.shields.io/badge/version-1.10.1-00D4C8)
 ![JavaScript](https://img.shields.io/badge/-JavaScript-F7DF1E?logo=javascript&logoColor=black)
 ![Node.js](https://img.shields.io/badge/-Node.js-339933?logo=node.js&logoColor=white)
 ![License](https://img.shields.io/badge/license-AGPLv3%20%2B%20Commercial-00D4C8.svg)
@@ -57,6 +57,7 @@ An idle incremental business simulator where you grow a home-based 3D printing o
 - **Prestige** — reset for a permanent earnings multiplier and replay with a head start
 - **Save export/import** — clipboard-based base64 save codes alongside `localStorage` auto-save
 - **⚙ Settings menu** — save/export/import, a light/dark theme toggle, a UI scale slider, an in-game changelog, and a GitHub link, all persisted locally
+- **📖 In-game guide** — a condensed how-to-play reference covering every system, opened straight from the HUD
 - **Buffs & debuffs bar** — every active timed effect (viral/publicity boosts, random-event swings) shown live under the HUD with a countdown, instead of only appearing as a toast
 - **Node-based tech tree** — Upgrades are laid out as connected nodes that branch rightward by prerequisite, across 34 research nodes in 5 trees
 - **Always-visible printer sidebar** — every printer's current job and print progress, visible no matter which tab you're on
@@ -287,6 +288,9 @@ Push to GitHub and enable Pages for the `main` branch.
 ## 📋 Changelog
 
 Versioning follows `MAJOR.MINOR.PATCH`: **major** bumps for breaking/structural changes (save format, core loop rework), **minor** bumps for new features (printers, products, systems), **patch** bumps for balance tweaks and bug fixes.
+
+### v1.10.1
+- Added an in-game 📖 GUIDE, opened from the top-right HUD — a condensed version of this README's Printers/Products/Materials/Workshop Space/Exhibitions/Finishing Studio/Workforce/Marketing/Commissions/Bulk Orders/Random Events/Keyboard Shortcuts sections, for players who never visit GitHub
 
 ### v1.10.0
 - Multi-colour printing: Dual/Quad-Colour Nozzle Head upgrades let printers add accent colours to a print for a value bonus, drawing a smaller top-up of filament from each accent colour's own stock

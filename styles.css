@@ -340,8 +340,20 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 #debug-exec:hover{background:var(--accent);color:#fff}
 
 /* ===== BULK ORDER MODAL ===== */
-#bulk-modal,#expo-modal,#commission-modal,#settings-modal,#tutorial-modal{position:fixed;inset:0;z-index:998;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center}
-#bulk-modal.open,#expo-modal.open,#commission-modal.open,#settings-modal.open,#tutorial-modal.open{display:flex}
+#bulk-modal,#expo-modal,#commission-modal,#settings-modal,#tutorial-modal,#guide-modal{position:fixed;inset:0;z-index:998;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center}
+#bulk-modal.open,#expo-modal.open,#commission-modal.open,#settings-modal.open,#tutorial-modal.open,#guide-modal.open{display:flex}
+.guide-modal-box{max-width:700px;max-height:85vh;display:flex;flex-direction:column}
+.guide-content{overflow-y:auto;text-align:left;padding-right:6px;margin-bottom:10px}
+.guide-section{margin-bottom:20px}
+.guide-section:last-child{margin-bottom:0}
+.guide-section-title{font-family:var(--font-title);font-size:13px;color:var(--accent);letter-spacing:.06em;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+.guide-section p, .guide-section li{font-size:12.5px;color:var(--text2);line-height:1.55}
+.guide-section ol, .guide-section ul{padding-left:18px;margin:4px 0}
+.guide-table{width:100%;border-collapse:collapse;font-size:12px;margin:6px 0}
+.guide-table th{text-align:left;color:var(--text3);font-weight:600;padding:4px 6px;border-bottom:1px solid var(--border2)}
+.guide-table td{padding:4px 6px;border-bottom:1px solid var(--border);color:var(--text2)}
+.guide-table tr:last-child td{border-bottom:none}
+.guide-key{font-family:var(--font-mono);background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:1px 6px;color:var(--accent2)}
 .tutorial-box{max-width:480px;text-align:left}
 .tutorial-box .modal-title{text-align:center}
 .tutorial-box .modal-body{margin-bottom:14px;line-height:1.5;font-size:14px;color:var(--text2)}
