@@ -249,6 +249,7 @@ Then open `http://localhost:3000` (or whichever port `server.js` binds) in your 
 |   |-- hero2.png    # Screenshot — Printers tab
 |   `-- hero3.png    # Screenshot — Studio tab
 |-- package.json
+|-- .gitignore       # Ignores node_modules/ and local-only Claude Code settings
 |-- LICENSE                                   # AGPLv3 full text
 |-- NOTICE                                    # Copyright + license summary
 |-- COMMERCIAL-LICENSE.md                     # Commercial licensing terms & how to request one
