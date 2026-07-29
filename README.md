@@ -15,7 +15,9 @@ An idle incremental business simulator where you grow a home-based 3D printing o
 
 ### 🎮 [**Play it now → 3dp-tycoon.thebooleanjulian.dev**](https://3dp-tycoon.thebooleanjulian.dev/)
 
-⚠️ Saves are local to your browser only — no cloud sync (yet). See the Save System section below.
+📄 [**Game Design Document**](docs/3DP-Tycoon-Game-Design-Document.pdf) — design pillars, every system, architecture, and roadmap in one PDF
+
+⚠️ Saves are local to your browser by default — optional ☁ Cloud Save is available if the deployment has it configured. See the Save System section below.
 
 </div>
 
@@ -254,6 +256,8 @@ Then open `http://localhost:3000` (or whichever port `server.js` binds) in your 
 |   `-- hero3.png    # Screenshot — Studio tab
 |-- package.json
 |-- .gitignore       # Ignores node_modules/ and local-only Claude Code settings
+|-- docs/
+|   `-- 3DP-Tycoon-Game-Design-Document.pdf   # Full game design doc — pillars, systems, architecture, roadmap
 |-- LICENSE                                   # AGPLv3 full text
 |-- NOTICE                                    # Copyright + license summary
 |-- COMMERCIAL-LICENSE.md                     # Commercial licensing terms & how to request one
