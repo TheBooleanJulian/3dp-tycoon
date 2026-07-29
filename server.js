@@ -47,11 +47,23 @@ if (Pool && PG_CONNECTION_STRING) {
       data JSONB NOT NULL,
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
     )
-  `).then(() => {
+  `).then(() => pool.query(`
+    CREATE TABLE IF NOT EXISTS cloud_save_backups (
+      id BIGSERIAL PRIMARY KEY,
+      code TEXT NOT NULL,
+      data JSONB NOT NULL,
+      backup_date TEXT NOT NULL,
+      backed_up_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      UNIQUE(code, backup_date)
+    )
+  `)).then(() => pool.query(
+    `CREATE INDEX IF NOT EXISTS idx_cloud_save_backups_date ON cloud_save_backups(backup_date)`
+  )).then(() => {
     dbReady = true;
     console.log('☁ Cloud save: connected to Postgres.');
+    startBackupScheduler();
   }).catch(err => {
-    console.error('☁ Cloud save: failed to initialise Postgres table:', err.message);
+    console.error('☁ Cloud save: failed to initialise Postgres tables:', err.message);
   });
 } else {
   console.log('☁ Cloud save disabled — no Postgres connection configured (set POSTGRES_CONNECTION_STRING or DATABASE_URL).');
@@ -191,11 +203,228 @@ async function handleSaveApi(req, res, urlPath) {
   sendJson(res, 405, { error: 'Method not allowed.' });
 }
 
+// ========================
+// DAILY BACKUPS — a snapshot of every cloud save is taken once per calendar day (UTC) into
+// cloud_save_backups, keyed by (code, backup_date) so re-running the check on the same day is
+// a no-op rather than a duplicate. This runs from inside the same Node process (no external
+// cron needed) via an hourly poll that's idempotent on the date, so it self-heals across
+// restarts/redeploys instead of relying on the process staying up for a full 24h stretch.
+// ========================
+const BACKUP_RETENTION_DAYS = Math.max(1, Number(process.env.BACKUP_RETENTION_DAYS) || 30);
+const BACKUP_POLL_MS = 60 * 60 * 1000; // hourly; the backup itself only actually runs once/day
+
+// "Today" is computed here in JS as a fixed UTC calendar-day string (backup_date is a plain TEXT
+// column, not a SQL DATE) rather than relying on Postgres' CURRENT_DATE — that keeps day
+// boundaries independent of the server/session timezone, and comparisons are simple lexical
+// string comparisons since YYYY-MM-DD sorts identically as text or as a real date.
+function todayUTC() { return new Date().toISOString().slice(0, 10); }
+function daysAgoUTC(days) { return new Date(Date.now() - days * 86400000).toISOString().slice(0, 10); }
+
+async function runDailyBackupIfNeeded() {
+  if (!pool || !dbReady) return;
+  try {
+    const today = todayUTC();
+    const already = await pool.query(`SELECT 1 FROM cloud_save_backups WHERE backup_date = $1 LIMIT 1`, [today]);
+    if (already.rows.length) return; // already snapshotted today
+    await takeBackupNow();
+  } catch (e) {
+    console.error('☁ Daily backup check failed:', e.message);
+  }
+}
+
+// Snapshots every current cloud save into today's backup row (upsert, so calling this more than
+// once on the same day just refreshes today's snapshot rather than erroring or duplicating).
+async function takeBackupNow() {
+  const today = todayUTC();
+  const result = await pool.query(`
+    INSERT INTO cloud_save_backups (code, data, backup_date)
+    SELECT code, data, $1 FROM cloud_saves
+    ON CONFLICT (code, backup_date) DO UPDATE SET data = EXCLUDED.data, backed_up_at = now()
+  `, [today]);
+  console.log(`☁ Cloud save backup: snapshotted ${result.rowCount} save(s) for ${today}`);
+  await pruneOldBackups();
+  return result.rowCount;
+}
+
+async function pruneOldBackups() {
+  const cutoff = daysAgoUTC(BACKUP_RETENTION_DAYS);
+  const result = await pool.query(`DELETE FROM cloud_save_backups WHERE backup_date < $1`, [cutoff]);
+  if (result.rowCount) console.log(`☁ Pruned ${result.rowCount} backup row(s) older than ${BACKUP_RETENTION_DAYS} days`);
+}
+
+function startBackupScheduler() {
+  runDailyBackupIfNeeded(); // catch up immediately on boot if today's snapshot is missing
+  setInterval(runDailyBackupIfNeeded, BACKUP_POLL_MS).unref();
+}
+
+// ========================
+// ADMIN API — dev-only rollback tooling, gated behind a bearer token (ADMIN_TOKEN env var).
+// Entirely disabled (every route 404s) if that env var isn't set, so there's no accidental
+// exposure on a deployment where nobody configured it.
+// ========================
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || null;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function checkAdminAuth(req) {
+  if (!ADMIN_TOKEN) return false;
+  const auth = req.headers['authorization'] || '';
+  const match = /^Bearer\s+(.+)$/i.exec(auth);
+  return !!match && match[1] === ADMIN_TOKEN;
+}
+
+async function handleAdminApi(req, res, urlPath) {
+  if (!ADMIN_TOKEN) { sendJson(res, 404, { error: 'Not found.' }); return; }
+  if (!checkAdminAuth(req)) { sendJson(res, 401, { error: 'Unauthorized.' }); return; }
+  if (!pool || !dbReady) { sendJson(res, 503, { error: 'Cloud save is not configured on this server.' }); return; }
+
+  const parts = urlPath.split('/').filter(Boolean); // ['api', 'admin', ...]
+
+  // POST /api/admin/backup-now — force an immediate snapshot (in addition to the daily one)
+  if (req.method === 'POST' && parts[2] === 'backup-now') {
+    try {
+      const count = await takeBackupNow();
+      sendJson(res, 200, { ok: true, snapshotted: count });
+    } catch (e) {
+      console.error('Manual backup failed:', e.message);
+      sendJson(res, 500, { error: 'Server error.' });
+    }
+    return;
+  }
+
+  // GET /api/admin/backups — list every available backup date with its row count
+  if (req.method === 'GET' && parts[2] === 'backups' && !parts[3]) {
+    try {
+      const result = await pool.query(
+        `SELECT backup_date, COUNT(*)::int AS count, MAX(backed_up_at) AS last_backed_up_at
+         FROM cloud_save_backups GROUP BY backup_date ORDER BY backup_date DESC`
+      );
+      sendJson(res, 200, { backups: result.rows });
+    } catch (e) {
+      console.error('List backups failed:', e.message);
+      sendJson(res, 500, { error: 'Server error.' });
+    }
+    return;
+  }
+
+  // GET /api/admin/backups/:date — list every code backed up on that date (no save data, just
+  // an index so the dev can find the code they're after before pulling the full save)
+  if (req.method === 'GET' && parts[2] === 'backups' && parts[3] && !parts[4]) {
+    const date = parts[3];
+    if (!DATE_RE.test(date)) { sendJson(res, 400, { error: 'Invalid date — use YYYY-MM-DD.' }); return; }
+    try {
+      const result = await pool.query(
+        `SELECT code, backed_up_at FROM cloud_save_backups WHERE backup_date = $1 ORDER BY code`,
+        [date]
+      );
+      sendJson(res, 200, { date, saves: result.rows });
+    } catch (e) {
+      console.error('List backup date failed:', e.message);
+      sendJson(res, 500, { error: 'Server error.' });
+    }
+    return;
+  }
+
+  // GET /api/admin/backups/:date/:code — inspect one save's backed-up data before restoring it
+  if (req.method === 'GET' && parts[2] === 'backups' && parts[3] && parts[4]) {
+    const date = parts[3];
+    const code = parts[4].toUpperCase();
+    if (!DATE_RE.test(date)) { sendJson(res, 400, { error: 'Invalid date — use YYYY-MM-DD.' }); return; }
+    if (!CODE_RE.test(code)) { sendJson(res, 400, { error: 'Invalid save code.' }); return; }
+    try {
+      const result = await pool.query(
+        `SELECT data, backed_up_at FROM cloud_save_backups WHERE backup_date = $1 AND code = $2`,
+        [date, code]
+      );
+      if (!result.rows.length) { sendJson(res, 404, { error: 'No backup found for that date/code.' }); return; }
+      sendJson(res, 200, { date, code, data: result.rows[0].data, backedUpAt: result.rows[0].backed_up_at });
+    } catch (e) {
+      console.error('Inspect backup failed:', e.message);
+      sendJson(res, 500, { error: 'Server error.' });
+    }
+    return;
+  }
+
+  // POST /api/admin/restore/:code — roll a single save back to a specific backup date.
+  // Body: { "date": "YYYY-MM-DD" }
+  if (req.method === 'POST' && parts[2] === 'restore' && parts[3]) {
+    const code = parts[3].toUpperCase();
+    if (!CODE_RE.test(code)) { sendJson(res, 400, { error: 'Invalid save code.' }); return; }
+    readJsonBody(req, async (err, payload) => {
+      if (err) { sendJson(res, 400, { error: err.message }); return; }
+      const date = payload && payload.date;
+      if (!DATE_RE.test(date || '')) { sendJson(res, 400, { error: 'Body must include "date" as YYYY-MM-DD.' }); return; }
+      try {
+        const backup = await pool.query(
+          `SELECT data FROM cloud_save_backups WHERE backup_date = $1 AND code = $2`,
+          [date, code]
+        );
+        if (!backup.rows.length) { sendJson(res, 404, { error: 'No backup found for that date/code.' }); return; }
+        await pool.query(
+          `INSERT INTO cloud_saves (code, data, updated_at) VALUES ($1, $2::jsonb, now())
+           ON CONFLICT (code) DO UPDATE SET data = EXCLUDED.data, updated_at = now()`,
+          [code, JSON.stringify(backup.rows[0].data)]
+        );
+        console.log(`☁ Admin restore: ${code} rolled back to ${date}`);
+        sendJson(res, 200, { ok: true, code, restoredFrom: date });
+      } catch (e) {
+        console.error('Restore failed:', e.message);
+        sendJson(res, 500, { error: 'Server error.' });
+      }
+    });
+    return;
+  }
+
+  // POST /api/admin/restore-all — roll EVERY cloud save back to a specific backup date. This
+  // replaces the live table wholesale, so it requires an explicit confirm string, not just a
+  // date, to guard against firing it by accident.
+  // Body: { "date": "YYYY-MM-DD", "confirm": "ROLLBACK" }
+  if (req.method === 'POST' && parts[2] === 'restore-all') {
+    readJsonBody(req, async (err, payload) => {
+      if (err) { sendJson(res, 400, { error: err.message }); return; }
+      const date = payload && payload.date;
+      if (!DATE_RE.test(date || '')) { sendJson(res, 400, { error: 'Body must include "date" as YYYY-MM-DD.' }); return; }
+      if (!payload || payload.confirm !== 'ROLLBACK') {
+        sendJson(res, 400, { error: 'Body must include "confirm": "ROLLBACK" to roll back every save.' });
+        return;
+      }
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        const check = await client.query(`SELECT COUNT(*)::int AS count FROM cloud_save_backups WHERE backup_date = $1`, [date]);
+        if (!check.rows[0].count) { await client.query('ROLLBACK'); sendJson(res, 404, { error: 'No backup exists for that date.' }); return; }
+        await client.query('DELETE FROM cloud_saves');
+        await client.query(
+          `INSERT INTO cloud_saves (code, data, updated_at)
+           SELECT code, data, backed_up_at FROM cloud_save_backups WHERE backup_date = $1`,
+          [date]
+        );
+        await client.query('COMMIT');
+        console.log(`☁ Admin restore-all: entire cloud_saves table rolled back to ${date} (${check.rows[0].count} save(s))`);
+        sendJson(res, 200, { ok: true, restoredFrom: date, count: check.rows[0].count });
+      } catch (e) {
+        await client.query('ROLLBACK').catch(() => {});
+        console.error('Restore-all failed:', e.message);
+        sendJson(res, 500, { error: 'Server error.' });
+      } finally {
+        client.release();
+      }
+    });
+    return;
+  }
+
+  sendJson(res, 404, { error: 'Unknown admin route.' });
+}
+
 http.createServer((req, res) => {
   const urlPath = decodeURIComponent(req.url.split('?')[0]);
 
   if (urlPath === '/api/save' || urlPath.startsWith('/api/save/')) {
     handleSaveApi(req, res, urlPath);
+    return;
+  }
+
+  if (urlPath === '/api/admin' || urlPath.startsWith('/api/admin/')) {
+    handleAdminApi(req, res, urlPath);
     return;
   }
 

@@ -8,7 +8,7 @@
 
 An idle incremental business simulator where you grow a home-based 3D printing operation into a full manufacturing empire.
 
-![Version](https://img.shields.io/badge/version-1.12.1-00D4C8)
+![Version](https://img.shields.io/badge/version-1.13.0-00D4C8)
 ![JavaScript](https://img.shields.io/badge/-JavaScript-F7DF1E?logo=javascript&logoColor=black)
 ![Node.js](https://img.shields.io/badge/-Node.js-339933?logo=node.js&logoColor=white)
 ![License](https://img.shields.io/badge/license-AGPLv3%20%2B%20Commercial-00D4C8.svg)
@@ -278,7 +278,8 @@ Push to GitHub and enable Pages for the `main` branch.
 2. Connect repo to Zeabur
 3. Select **Node.js** runtime — it auto-detects `server.js`
 4. Deploy!
-5. **Optional — enable ☁ Cloud Save:** add a **PostgreSQL** service to the same Zeabur project and link it to the Node service. Zeabur injects the connection details as environment variables automatically; `server.js` picks up either a full connection string (`POSTGRES_CONNECTION_STRING` or `DATABASE_URL`) or the discrete `POSTGRES_HOST`/`POSTGRES_PORT`/`POSTGRES_USERNAME`/`POSTGRES_PASSWORD`/`POSTGRES_DATABASE` vars — whichever your Postgres template provides. No manual schema setup needed: the `cloud_saves` table is created automatically on first boot. Without a linked database, the game runs exactly as before — the ☁ Cloud Save buttons just report that it isn't configured.
+5. **Optional — enable ☁ Cloud Save:** add a **PostgreSQL** service to the same Zeabur project and link it to the Node service. Zeabur injects the connection details as environment variables automatically; `server.js` picks up either a full connection string (`POSTGRES_CONNECTION_STRING` or `DATABASE_URL`) or the discrete `POSTGRES_HOST`/`POSTGRES_PORT`/`POSTGRES_USERNAME`/`POSTGRES_PASSWORD`/`POSTGRES_DATABASE` vars — whichever your Postgres template provides. No manual schema setup needed: the `cloud_saves` and `cloud_save_backups` tables are created automatically on first boot. Without a linked database, the game runs exactly as before — the ☁ Cloud Save buttons just report that it isn't configured.
+6. **Optional — enable dev rollback tooling:** set an **`ADMIN_TOKEN`** env var (any long random string) to unlock the `/api/admin/*` backup/rollback routes described under Save System below. Leave it unset to keep those routes fully disabled.
 
 ---
 
@@ -294,12 +295,29 @@ Push to GitHub and enable Pages for the `main` branch.
   - **Why a code instead of accounts:** no signup/login friction, no password to forget, and it keeps the project dependency-free of any third-party auth provider. The trade-off is that a leaked code is a full read/write credential with no recovery mechanism.
   - Cloud saves are stored as a single `cloud_saves` table (`code TEXT PRIMARY KEY`, `data JSONB`, `updated_at TIMESTAMPTZ`) — last write wins, same as local autosave.
   - The API (`/api/save/new` to create, `GET /api/save/:code` to fetch, `PUT /api/save/:code` to overwrite) is rate-limited per IP and caps upload size at 1MB.
+- **Daily backups + dev rollback** (server-side, invisible to players): every cloud save is snapshotted once per UTC calendar day into a `cloud_save_backups` table, keyed by `(code, backup_date)`. The check runs hourly from inside the same Node process (no external cron needed) but only actually snapshots once a day, and self-heals across restarts — if the server was down at its usual time, it just catches up on the next hourly tick. Backups older than `BACKUP_RETENTION_DAYS` (default 30) are pruned automatically.
+  - Enable it by setting an **`ADMIN_TOKEN`** env var on the server — every `/api/admin/*` route 404s entirely if it's unset, so there's no accidental exposure on a deployment where you never configured one.
+  - Authenticate with `Authorization: Bearer <ADMIN_TOKEN>`. Routes:
+    | Route | Effect |
+    |---|---|
+    | `POST /api/admin/backup-now` | Force an immediate snapshot (in addition to the daily one) |
+    | `GET /api/admin/backups` | List every backup date on file, with a row count each |
+    | `GET /api/admin/backups/:date` | List every save code backed up on that date |
+    | `GET /api/admin/backups/:date/:code` | Inspect one save's backed-up data before restoring it |
+    | `POST /api/admin/restore/:code` | Roll **one** save back to a specific date — body `{"date":"YYYY-MM-DD"}` |
+    | `POST /api/admin/restore-all` | Roll **every** save back to a specific date, replacing the live table wholesale — body `{"date":"YYYY-MM-DD","confirm":"ROLLBACK"}` (the confirm string is required, precisely so this can't fire by accident) |
+  - Example: `curl -X POST https://your-deployment/api/admin/restore/ABCDEFGHJK -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" -d '{"date":"2026-07-28"}'`
 
 ---
 
 ## 📋 Changelog
 
 Versioning follows `MAJOR.MINOR.PATCH`: **major** bumps for breaking/structural changes (save format, core loop rework), **minor** bumps for new features (printers, products, systems), **patch** bumps for balance tweaks and bug fixes.
+
+### v1.13.0
+- Cloud saves are now backed up automatically once per UTC day into a `cloud_save_backups` table, with configurable retention (`BACKUP_RETENTION_DAYS`, default 30)
+- Added a dev-only `/api/admin/*` rollback API (list backups, inspect a backed-up save, restore one save or the entire table to a given date) gated behind an `ADMIN_TOKEN` env var — entirely disabled if that var isn't set
+- No player-facing changes
 
 ### v1.12.1
 - Fixed the always-visible printer sidebar pushing the main gameplay area off-screen on narrow/mobile viewports — below ~720px wide it now stacks above the content as a compact horizontally-scrolling strip instead of sitting beside it at a fixed 230px width

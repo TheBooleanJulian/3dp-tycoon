@@ -1,7 +1,7 @@
 // ========================
 // GAME DATA
 // ========================
-const VERSION = '1.12.1';
+const VERSION = '1.13.0';
 
 // PRODUCT_BASES are the 20 "common" items — the plain, baseline version of each category.
 // Each one also spawns 4 variant tiers (see PRODUCT_VARIANTS below) so that almost no two
@@ -2715,6 +2715,9 @@ const GITHUB_PROFILE_URL = 'https://github.com/TheBooleanJulian';
 // change) since the full detailed history lives in README.md; this is just enough to answer
 // "what's new" without leaving the game.
 const CHANGELOG = [
+  { version:'1.13.0', notes:[
+    'Server: cloud saves are now snapshotted automatically once a day, with a dev-only rollback API to restore a single save or the whole table from any recent backup (no player-facing changes)',
+  ]},
   { version:'1.12.1', notes:[
     'Fixed the always-visible printer sidebar pushing the main gameplay area off-screen on mobile — it now stacks as a compact horizontal strip above the content below ~720px wide',
   ]},
