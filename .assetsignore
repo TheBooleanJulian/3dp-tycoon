@@ -1,0 +1,19 @@
+# Only the game (index.html, game.js, styles.css) is served; everything else here stays private.
+.git
+.gitignore
+.assetsignore
+.claude
+.wrangler
+node_modules
+worker
+docs
+wrangler.jsonc
+server.js
+package.json
+package-lock.json
+README.md
+LICENSE
+NOTICE
+TRADEMARKS.md
+COMMERCIAL-LICENSE.md
+COMMERCIAL-LICENSE-AGREEMENT-TEMPLATE.md

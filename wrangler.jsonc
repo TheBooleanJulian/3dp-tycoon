@@ -1,0 +1,27 @@
+{
+  // 3DP Tycoon on Cloudflare Workers (replaces server.js on Zeabur). The game files at the repo root are static assets
+  // (.assetsignore keeps the server code, docs and licences unserved); worker/ handles /api/save and /api/admin.
+  // Data: schema srv_3dp_tycoon (thebooleanjulian-db migration 20261103100000). Secret: ADMIN_TOKEN (optional).
+  "name": "3dp-tycoon",
+  "account_id": "c580c4403524273d1bece674117472dd",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "build": { "command": "npm ci --prefix worker" },
+  "assets": {
+    "directory": ".",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  // 30 save requests per minute per IP, like server.js's in-memory limiter.
+  "ratelimits": [{ "name": "SAVE_LIMIT", "namespace_id": "1102", "simple": { "limit": 30, "period": 60 } }],
+  // Hourly; the backup itself runs once per UTC day.
+  "triggers": { "crons": ["0 * * * *"] },
+  // After apply.mjs + `provision.mjs <supabase.env> srv_3dp_tycoon <out dir>` in thebooleanjulian-db:
+  // "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "<3dp-tycoon-db id from provision.mjs>" }],
+  // Overrides the *.thebooleanjulian.dev wildcard (Zeabur). Rollback: remove and redeploy.
+  "routes": [{ "pattern": "3dp-tycoon.thebooleanjulian.dev", "custom_domain": true }],
+  "observability": { "enabled": true }
+}
