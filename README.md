@@ -229,8 +229,9 @@ Open the debug console with `` ` `` and enter:
 | Layer | Choice |
 |---|---|
 | Frontend | Plain HTML + CSS + JavaScript — classic `<script src>`/`<link>` tags, no bundler, no framework |
-| Server | Node.js (static file server + a small `/api/save/*` JSON API for cloud saves) |
-| Cloud save DB (optional) | PostgreSQL, via the `pg` driver — only used if a connection is configured |
+| Server (production) | Cloudflare Worker (`worker/`): the game as static assets + the `/api/save/*` and `/api/admin/*` routes, hourly Cron Trigger for backups |
+| Server (local) | Node.js (`server.js`: static file server + the same JSON API) |
+| Cloud save DB (optional) | PostgreSQL — in production the `srv_3dp_tycoon` schema of the shared Supabase project via Hyperdrive; only used if a connection is configured |
 
 ## Quick Start
 
@@ -249,7 +250,9 @@ Then open `http://localhost:3000` (or whichever port `server.js` binds) in your 
 |-- index.html       # Markup only — links game.js and styles.css
 |-- game.js          # Entire game — UI rendering, logic, state
 |-- styles.css       # All styling
-|-- server.js        # Static file server (also serves assets/*)
+|-- server.js        # Static file server for local runs (also serves assets/*)
+|-- worker/          # Production: Cloudflare Worker (cloud save API + daily backups) and its tests
+|-- wrangler.jsonc   # Worker config; .assetsignore keeps everything but the game unserved
 |-- assets/
 |   |-- hero.png     # Key art — README cover image & boot loading-screen backdrop
 |   |-- hero2.png    # Screenshot — Printers tab
@@ -273,13 +276,13 @@ Hosted and playable at **[3dp-tycoon.thebooleanjulian.dev](https://3dp-tycoon.th
 ### GitHub Pages
 Push to GitHub and enable Pages for the `main` branch.
 
-### Zeabur
-1. Push to GitHub
-2. Connect repo to Zeabur
-3. Select **Node.js** runtime — it auto-detects `server.js`
-4. Deploy!
-5. **Optional — enable ☁ Cloud Save:** add a **PostgreSQL** service to the same Zeabur project and link it to the Node service. Zeabur injects the connection details as environment variables automatically; `server.js` picks up either a full connection string (`POSTGRES_CONNECTION_STRING` or `DATABASE_URL`) or the discrete `POSTGRES_HOST`/`POSTGRES_PORT`/`POSTGRES_USERNAME`/`POSTGRES_PASSWORD`/`POSTGRES_DATABASE` vars — whichever your Postgres template provides. No manual schema setup needed: the `cloud_saves` and `cloud_save_backups` tables are created automatically on first boot. Without a linked database, the game runs exactly as before — the ☁ Cloud Save buttons just report that it isn't configured.
-6. **Optional — enable dev rollback tooling:** set an **`ADMIN_TOKEN`** env var (any long random string) to unlock the `/api/admin/*` backup/rollback routes described under Save System below. Leave it unset to keep those routes fully disabled.
+### Cloudflare Workers (production)
+1. `npx wrangler deploy` (builds `worker/`, uploads the game files; `.assetsignore` keeps the server code, docs and licences unserved).
+2. **☁ Cloud Save:** the schema lives in `thebooleanjulian-db` (`srv_3dp_tycoon`). After `apply.mjs` and `provision.mjs … srv_3dp_tycoon`, put the printed Hyperdrive id in the `hyperdrive` block of `wrangler.jsonc` and redeploy. Without it, the game runs and the ☁ buttons report that cloud save isn't configured, exactly as before.
+3. **Optional — dev rollback tooling:** `npx wrangler secret put ADMIN_TOKEN`. The hourly Cron Trigger takes the daily backup (once per UTC day).
+4. Tests: `cd worker && npm install && node --test`.
+
+`server.js` still runs everything locally (`node server.js`), with Postgres optional as before (`POSTGRES_CONNECTION_STRING` / `DATABASE_URL`).
 
 ---
 
@@ -291,11 +294,11 @@ Push to GitHub and enable Pages for the `main` branch.
 - Save data is stored in the browser's `localStorage` first, always — that part never needs a server
 - ⚠️ **No cross-device/cross-browser sync by default.** A different browser, a different device, a private/incognito window, or clearing site data will not see an existing local save. Deploying new versions of the game is safe (it doesn't touch anyone's `localStorage`), but switching domains/ports, or the player clearing their browser data, will orphan it.
 - Use **⬆ EXPORT** (⚙ Settings menu, or the `EXPORT` debug code) to copy a portable base64 save code to your clipboard, and **⬇ IMPORT** (⚙ Settings menu, splash-screen button, or `IMPORT` debug code) to restore it — a manual, one-off way to back up a save or move it to another browser/device
-- **☁ Cloud Save** (optional, requires a Postgres-linked deployment — see Zeabur setup above): **CREATE CLOUD SAVE** (⚙ Settings menu) uploads your current save and gives you back a short code (10 characters, e.g. `7WGD-DDWD-2U`-style but unhyphenated). Enter that code with **🔗 LOAD FROM CODE** (Settings, or **☁ Load Cloud Save** on the splash screen) on any other browser/device to pick it up — from then on, every save/autosave on that browser also pushes to the cloud automatically. **⚠️ Treat a cloud save code like a password** — anyone who has it can load *or overwrite* that save; there's no account/login layer behind it, by design (see the trade-offs below).
+- **☁ Cloud Save** (optional, requires a Postgres-linked deployment — see Deployment above): **CREATE CLOUD SAVE** (⚙ Settings menu) uploads your current save and gives you back a short code (10 characters, e.g. `7WGD-DDWD-2U`-style but unhyphenated). Enter that code with **🔗 LOAD FROM CODE** (Settings, or **☁ Load Cloud Save** on the splash screen) on any other browser/device to pick it up — from then on, every save/autosave on that browser also pushes to the cloud automatically. **⚠️ Treat a cloud save code like a password** — anyone who has it can load *or overwrite* that save; there's no account/login layer behind it, by design (see the trade-offs below).
   - **Why a code instead of accounts:** no signup/login friction, no password to forget, and it keeps the project dependency-free of any third-party auth provider. The trade-off is that a leaked code is a full read/write credential with no recovery mechanism.
   - Cloud saves are stored as a single `cloud_saves` table (`code TEXT PRIMARY KEY`, `data JSONB`, `updated_at TIMESTAMPTZ`) — last write wins, same as local autosave.
   - The API (`/api/save/new` to create, `GET /api/save/:code` to fetch, `PUT /api/save/:code` to overwrite) is rate-limited per IP and caps upload size at 1MB.
-- **Daily backups + dev rollback** (server-side, invisible to players): every cloud save is snapshotted once per UTC calendar day into a `cloud_save_backups` table, keyed by `(code, backup_date)`. The check runs hourly from inside the same Node process (no external cron needed) but only actually snapshots once a day, and self-heals across restarts — if the server was down at its usual time, it just catches up on the next hourly tick. Backups older than `BACKUP_RETENTION_DAYS` (default 30) are pruned automatically.
+- **Daily backups + dev rollback** (server-side, invisible to players): every cloud save is snapshotted once per UTC calendar day into a `cloud_save_backups` table, keyed by `(code, backup_date)`. The check runs hourly (a Cron Trigger on Workers; an in-process timer under `server.js`) but only actually snapshots once a day, and self-heals across restarts — if the server was down at its usual time, it just catches up on the next hourly tick. Backups older than `BACKUP_RETENTION_DAYS` (default 30) are pruned automatically.
   - Enable it by setting an **`ADMIN_TOKEN`** env var on the server — every `/api/admin/*` route 404s entirely if it's unset, so there's no accidental exposure on a deployment where you never configured one.
   - Authenticate with `Authorization: Bearer <ADMIN_TOKEN>`. Routes:
     | Route | Effect |
@@ -313,6 +316,10 @@ Push to GitHub and enable Pages for the `main` branch.
 ## 📋 Changelog
 
 Versioning follows `MAJOR.MINOR.PATCH`: **major** bumps for breaking/structural changes (save format, core loop rework), **minor** bumps for new features (printers, products, systems), **patch** bumps for balance tweaks and bug fixes.
+
+### Unreleased — hosting
+- Moved from Zeabur to Cloudflare Workers (`worker/`): same game files, same cloud-save and admin API, backups on a Cron Trigger; cloud saves move to the shared Supabase project (`srv_3dp_tycoon` schema). The server code and docs are no longer publicly downloadable from the site.
+- No player-facing changes
 
 ### v1.13.0
 - Cloud saves are now backed up automatically once per UTC day into a `cloud_save_backups` table, with configurable retention (`BACKUP_RETENTION_DAYS`, default 30)
