@@ -11,43 +11,43 @@ function fakeDb() {
   const sql = async (strings, ...v) => {
     const q = strings.join('?').replace(/\s+/g, ' ').trim();
     const out = (rows, count = rows.length) => Object.assign(rows, { count });
-    if (q.startsWith('insert into srv_3dp_tycoon.cloud_saves (code, data) values')) {
+    if (q.startsWith('insert into tycoon_3dp.cloud_saves (code, data) values')) {
       if (saves.has(v[0])) throw Object.assign(new Error('dup'), { code: '23505' });
       saves.set(v[0], { data: v[1].value, updated_at: new Date() });
       return out([], 1);
     }
     if (q.startsWith('select data, updated_at')) return out(saves.has(v[0]) ? [saves.get(v[0])] : []);
-    if (q.startsWith('update srv_3dp_tycoon.cloud_saves')) {
+    if (q.startsWith('update tycoon_3dp.cloud_saves')) {
       if (!saves.has(v[1])) return out([], 0);
       saves.set(v[1], { data: v[0].value, updated_at: new Date() });
       return out([], 1);
     }
-    if (q.startsWith('select 1 from srv_3dp_tycoon.cloud_save_backups')) return out([...backups.values()].some((b) => b.backup_date === v[0]) ? [{}] : []);
-    if (q.startsWith('insert into srv_3dp_tycoon.cloud_save_backups')) {
+    if (q.startsWith('select 1 from tycoon_3dp.cloud_save_backups')) return out([...backups.values()].some((b) => b.backup_date === v[0]) ? [{}] : []);
+    if (q.startsWith('insert into tycoon_3dp.cloud_save_backups')) {
       for (const [code, s] of saves) backups.set(`${v[0]}|${code}`, { code, data: s.data, backup_date: v[0], backed_up_at: new Date() });
       return out([], saves.size);
     }
-    if (q.startsWith('delete from srv_3dp_tycoon.cloud_save_backups')) {
+    if (q.startsWith('delete from tycoon_3dp.cloud_save_backups')) {
       for (const [k, b] of backups) if (b.backup_date < v[0]) backups.delete(k);
       return out([]);
     }
-    if (q.startsWith('select data, backed_up_at from srv_3dp_tycoon.cloud_save_backups')) {
+    if (q.startsWith('select data, backed_up_at from tycoon_3dp.cloud_save_backups')) {
       const b = backups.get(`${v[0]}|${v[1]}`);
       return out(b ? [{ data: b.data, backed_up_at: b.backed_up_at }] : []);
     }
-    if (q.startsWith('select data from srv_3dp_tycoon.cloud_save_backups')) {
+    if (q.startsWith('select data from tycoon_3dp.cloud_save_backups')) {
       const b = backups.get(`${v[0]}|${v[1]}`);
       return out(b ? [{ data: b.data }] : []);
     }
-    if (q.startsWith('insert into srv_3dp_tycoon.cloud_saves (code, data, updated_at) values')) {
+    if (q.startsWith('insert into tycoon_3dp.cloud_saves (code, data, updated_at) values')) {
       saves.set(v[0], { data: v[1].value, updated_at: new Date() });
       return out([], 1);
     }
-    if (q.startsWith('select count(*)::int as count from srv_3dp_tycoon.cloud_save_backups')) {
+    if (q.startsWith('select count(*)::int as count from tycoon_3dp.cloud_save_backups')) {
       return out([{ count: [...backups.values()].filter((b) => b.backup_date === v[0]).length }]);
     }
-    if (q === 'delete from srv_3dp_tycoon.cloud_saves') { saves.clear(); return out([]); }
-    if (q.startsWith('insert into srv_3dp_tycoon.cloud_saves (code, data, updated_at) select')) {
+    if (q === 'delete from tycoon_3dp.cloud_saves') { saves.clear(); return out([]); }
+    if (q.startsWith('insert into tycoon_3dp.cloud_saves (code, data, updated_at) select')) {
       for (const b of backups.values()) if (b.backup_date === v[0]) saves.set(b.code, { data: b.data, updated_at: b.backed_up_at });
       return out([]);
     }

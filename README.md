@@ -231,7 +231,7 @@ Open the debug console with `` ` `` and enter:
 | Frontend | Plain HTML + CSS + JavaScript — classic `<script src>`/`<link>` tags, no bundler, no framework |
 | Server (production) | Cloudflare Worker (`worker/`): the game as static assets + the `/api/save/*` and `/api/admin/*` routes, hourly Cron Trigger for backups |
 | Server (local) | Node.js (`server.js`: static file server + the same JSON API) |
-| Cloud save DB (optional) | PostgreSQL — in production the `srv_3dp_tycoon` schema of the shared Supabase project via Hyperdrive; only used if a connection is configured |
+| Cloud save DB (optional) | PostgreSQL — in production the `tycoon_3dp` schema of the shared Supabase project via Hyperdrive; only used if a connection is configured |
 
 ## Quick Start
 
@@ -278,7 +278,7 @@ Push to GitHub and enable Pages for the `main` branch.
 
 ### Cloudflare Workers (production)
 1. `npx wrangler deploy` (builds `worker/`, uploads the game files; `.assetsignore` keeps the server code, docs and licences unserved).
-2. **☁ Cloud Save:** the schema lives in `thebooleanjulian-db` (`srv_3dp_tycoon`). After `apply.mjs` and `provision.mjs … srv_3dp_tycoon`, put the printed Hyperdrive id in the `hyperdrive` block of `wrangler.jsonc` and redeploy. Without it, the game runs and the ☁ buttons report that cloud save isn't configured, exactly as before.
+2. **☁ Cloud Save:** the schema lives in `thebooleanjulian-db` (`tycoon_3dp`). After `apply.mjs` and `provision.mjs … tycoon_3dp`, put the printed Hyperdrive id in the `hyperdrive` block of `wrangler.jsonc` and redeploy. Without it, the game runs and the ☁ buttons report that cloud save isn't configured, exactly as before.
 3. **Optional — dev rollback tooling:** `npx wrangler secret put ADMIN_TOKEN`. The hourly Cron Trigger takes the daily backup (once per UTC day).
 4. Tests: `cd worker && npm install && node --test`.
 
@@ -318,7 +318,7 @@ Push to GitHub and enable Pages for the `main` branch.
 Versioning follows `MAJOR.MINOR.PATCH`: **major** bumps for breaking/structural changes (save format, core loop rework), **minor** bumps for new features (printers, products, systems), **patch** bumps for balance tweaks and bug fixes.
 
 ### Unreleased — hosting
-- Moved from Zeabur to Cloudflare Workers (`worker/`): same game files, same cloud-save and admin API, backups on a Cron Trigger; cloud saves move to the shared Supabase project (`srv_3dp_tycoon` schema). The server code and docs are no longer publicly downloadable from the site.
+- Moved from Zeabur to Cloudflare Workers (`worker/`): same game files, same cloud-save and admin API, backups on a Cron Trigger; cloud saves move to the shared Supabase project (`tycoon_3dp` schema). The server code and docs are no longer publicly downloadable from the site.
 - No player-facing changes
 
 ### v1.13.0
